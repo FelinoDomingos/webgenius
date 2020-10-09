@@ -1,0 +1,564 @@
+
+ <!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="SISACAD sistema academico da cadeira de engenharia de software." />
+    <meta name="keywords" content="sistema, academico, engenharia, software" />
+    <meta name="author" content="Guilherme Araujo" />
+    <link rel="shortcut icon" type="image/x-icon" href="imgs/favicon.png">
+    <title>Secretaria|  Prova - Turma A</title>
+    
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="plugins/fontawesome-free/css/all.min.css">
+  <!-- Ionicons -->
+  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+  <!-- Tempusdominus Bbootstrap 4 -->
+ 
+  <!-- iCheck -->
+  <link rel="stylesheet" href="plugins/icheck-bootstrap/icheck-bootstrap.min.css">
+  <!-- JQVMap -->
+  <link rel="stylesheet" href="plugins/jqvmap/jqvmap.min.css">
+  <!-- Theme style -->
+  <link rel="stylesheet" href="dist/css/adminlte.min.css">
+  <!-- overlayScrollbars -->
+  <link rel="stylesheet" href="plugins/overlayScrollbars/css/OverlayScrollbars.min.css">
+  <!-- Daterange picker -->
+  <link rel="stylesheet" href="plugins/daterangepicker/daterangepicker.css">
+  <!-- summernote -->
+  <link rel="stylesheet" href="plugins/summernote/summernote-bs4.css">
+  <!-- Google Font: Source Sans Pro -->
+  <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+  
+  <link href="comercio/css/style.css" rel="stylesheet">
+
+
+     <!-- Bootstrap CSS -->
+   
+   <style type="text/css">
+   
+      .btn-succe{
+		    color: white;
+		    background-color: rgba(0,0,0,0.4);
+		    box-sahdow: 1px 1px 4px black;
+		   
+		}
+		.cor{
+		   
+		   font-size: 20px;
+		   font-family: Arial;
+		   font-style: italic;
+		   color: black;
+		   font-weight: bolder;
+		   
+		}
+		.blue-text{
+		  color: blue;
+		}
+		.red-text{
+		  color: red;
+		}
+		.afastar{
+		   margin-left: 5px;
+		   color: blue;
+		}
+		
+		@media(max-width: 800px){
+		   	.tamanho{
+			   width: 100%;
+			   color: blue;
+		     }
+		   
+		}
+		fieldset{
+	        
+	        margin-bottom: 8px;
+	        
+        }
+        .enfase{
+            box-shadow: 1px 1px 4px black;
+        }
+		input{
+		  border:none;
+		}
+		legend{
+		  
+		  font-style: italic;
+		}
+		
+        .doc{
+           background-image: url("webgenius/Aluno/imgs/banner_img2.jpg");
+           background-size:cover;
+           background-repeat: no-repeat;
+           color: white;
+           font-size: 20px;
+           font-style: italic;
+        }
+        .botao{
+           background-color: rgba(0,0,64,1);
+           color: white;
+           width: 30%;
+           margin-left: 4px;
+        }
+        .botao:hover{
+           background-color: rgba(0,106,0,1);
+           color: white;
+           font-weight: bolder;
+           transition: all 1s ease-in;
+        }
+        .lista{
+           
+           width: 1000px;
+           box-shadow: 1px 1px 4px black;
+        }
+        a{
+          
+          text-decoration: none;
+          color: blue;
+        }
+        a:hover{
+          
+          color: green;
+        }
+         .corDaLinha{
+          
+          background-color: rgba(0,113,113,1);
+        }
+        .th{
+          color: white;
+          font-style: italic;
+          font-weight: bolder;
+        }
+        .c{
+           
+           box-shadow: 1px 1px 4px  black;
+        }
+        
+   </style> 
+
+</head>
+
+<body class="hold-transition sidebar-mini layout-fixed">
+
+	<div class="wrapper">
+
+
+
+
+		<nav
+			class="main-header navbar navbar-expand navbar-white navbar-light">
+			<!-- Left navbar links -->
+			<ul class="navbar-nav">
+				<li class="nav-item"><a class="nav-link" data-widget="pushmenu"
+					href="#" role="button"><i class="fas fa-bars"></i></a></li>
+				<li class="nav-item d-none d-sm-inline-block"><a
+					href="index3.html" class="nav-link">Vassovava</a></li>
+				<li class="nav-item d-none d-sm-inline-block"><a href="#"
+					class="nav-link">Activo</a></li>
+			</ul>
+
+			<!-- SEARCH FORM -->
+			<form class="form-inline ml-3">
+				<div class="input-group input-group-sm">
+					<input class="form-control form-control-navbar" type="search"
+						placeholder="WebGenius" aria-label="Search" disabled="disabled">
+					
+				</div>
+			</form>
+
+			<!-- Right navbar links -->
+			<ul class="navbar-nav ml-auto">
+
+				<li class="nav-item"><a class="nav-link"
+					data-widget="control-sidebar" data-slide="true" href="#"
+					role="button"> <i class="fas fa-th-large"></i>
+				</a></li>
+			</ul>
+		</nav>
+		<!-- /.navbar -->
+
+		<!-- Main Sidebar Container -->
+		<aside class="main-sidebar sidebar-dark-primary elevation-4">
+    <!-- Brand Logo -->
+    <a href="index3.html" class="brand-link">
+      <img src="dist/img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3"
+           style="opacity: .8">
+      <span class="brand-text font-weight-light">Secretaria</span>
+    </a>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <!-- Sidebar user panel (optional) -->
+      <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+        <div class="image">
+          <img src="dist/img/user2-160x160.jpg" class="img-circle elevation-2" alt="User Image">
+        </div>
+        <div class="info">
+          <a href="#" class="d-block">Euclair Thompson</a>
+        </div>
+      </div>
+
+      <!-- Sidebar Menu -->
+      <nav class="mt-2">
+					<ul class="nav nav-pills nav-sidebar flex-column"
+						data-widget="treeview" role="menu" data-accordion="false">
+						<!-- Add icons to the links using the .nav-icon class
+               with font-awesome or any other icon font library -->
+
+						<li class="nav-item"><a href="/Secretaria" class="nav-link"> <i
+								class="nav-icon fas fa-th"></i>
+								<p>
+									Inicio <span class="right badge badge-danger">New</span>
+								</p>
+						</a></li>
+
+						<li class="nav-item has-treeview "><a href="#"
+							class="nav-link active"> <i
+								class="nav-icon fas fa-tachometer-alt"></i>
+								<p>
+									Serviços <i class="right fas fa-angle-left"></i> <span
+										class="badge badge-info right">5</span>
+								</p>
+						</a>
+							<ul class="nav nav-treeview">
+								
+								<li class="nav-item"><a href="/Secretaria-Matricula" class="nav-link">
+										<i class="far fa-circle nav-icon"></i>
+										<p> Matrícula</p>
+								</a></li>
+
+								<li class="nav-item"><a href="/Secretaria-Confirmacao"
+									class="nav-link"> <i class="far fa-circle nav-icon"></i>
+										<p>Confirmação</p>
+								</a></li>
+								
+								
+								<li class="nav-item"><a href="/Secretaria-Marcar-Prova"
+									class="nav-link"> <i class="far fa-circle nav-icon"></i>
+										<p>Marcar Prova</p>
+								</a></li>
+								
+								<li class="nav-item"><a href="/Secretaria-Imprimir-Boletin"
+									class="nav-link"> <i class="far fa-circle nav-icon"></i>
+										<p>Boletin De<br>Notas</p>
+								</a></li>
+								<li class="nav-item"><a href="/Secretaria-Mini-Pauta"
+									class="nav-link"> <i class="far fa-circle nav-icon"></i>
+										<p>Mini Pautas</p>
+								</a></li>
+								
+
+							</ul></li>
+							
+						
+						<li class="nav-item"><a href="/Secretaria-Minha-Seguranca"
+							class="nav-link"> <i class="far fa-circle nav-icon"></i>
+								<p>Definições</p>
+						</a></li>
+						<li class="nav-item"><a href="/terminar-sessao"
+							class="nav-link"> <i class="far fa-circle nav-icon"></i>
+								<p>Logout</p>
+						</a></li>
+					</ul>
+				</nav>
+      <!-- /.sidebar-menu -->
+    </div>
+    <!-- /.sidebar -->
+  </aside>
+
+		<div class="content-wrapper">
+			<!-- Content Header (Page header) -->
+			<div class="content-header">
+				<div class="container-fluid">
+					<div class="row mb-2">
+						<div class="col-sm-6">
+							<h1 class="m-0 text-dark">Vassovava</h1>
+						</div>
+						<!-- /.col -->
+						<div class="col-sm-6">
+							<ol class="breadcrumb float-sm-right">
+								<li class="breadcrumb-item"><a href="#"></a></li>
+								<li class="breadcrumb-item active">Sistema Escolar</li>
+							</ol>
+						</div>
+						<!-- /.col -->
+					</div>
+					<!-- /.row -->
+				</div>
+				<!-- /.container-fluid -->
+			</div>
+			<!-- /.content-header -->
+
+			<!-- Main content -->
+			<section class="content">
+			  
+			    
+			
+				<div class="container-fluid">
+					<!-- Small boxes (Stat box) -->
+					<div class="row mb-3">
+						<div class="col-lg-3 col-6">
+							<!-- small box -->
+							<div class="small-box bg-info">
+								<div class="inner">
+									<h3>150</h3>
+
+									<p>Matrícula e <br>Confirmação</p>
+								</div>
+								<div class="icon">
+									<i class="ion ion-bag"></i>
+								</div>
+								<a href="#" class="small-box-footer">Ver<i
+									class="fas fa-arrow-circle-right"></i></a>
+							</div>
+						</div>
+						<!-- ./col -->
+						<div class="col-lg-3 col-6">
+							<!-- small box -->
+							<div class="small-box bg-success">
+								<div class="inner">
+									<h3>
+										53<sup style="font-size: 20px">%</sup>
+									</h3>
+
+									<p>Propinas</p>
+								</div>
+								<div class="icon">
+									<i class="ion ion-stats-bars"></i>
+								</div>
+								<a href="#" class="small-box-footer">Ver<i
+									class="fas fa-arrow-circle-right"></i></a>
+							</div>
+						</div>
+						<!-- ./col -->
+						<div class="col-lg-3 col-6">
+							<!-- small box -->
+							<div class="small-box bg-warning">
+								<div class="inner">
+									<h3>44</h3>
+
+									<p>Outros Serviços <br></p>
+								</div>
+								<div class="icon">
+									<i class="ion ion-person-add"></i>
+								</div>
+								<a href="#" class="small-box-footer">Ver<i
+									class="fas fa-arrow-circle-right"></i></a>
+							</div>
+						</div>
+						<!-- ./col -->
+						<div class="col-lg-3 col-6">
+							<!-- small box -->
+							<div class="small-box bg-danger">
+								<div class="inner">
+									<h3>65</h3>
+
+									<p>Minha Finança</p>
+								</div>
+								<div class="icon">
+									<i class="ion ion-pie-graph"></i>
+								</div>
+								<a href="/Secretaria-Minha-Financa" class="small-box-footer">Ver <i
+									class="fas fa-arrow-circle-right"></i></a>
+							</div>
+						</div>
+						<!-- ./col -->
+					</div>
+
+					
+
+
+					<div class="row">
+          <!-- Left col -->
+           
+           <section class="col-lg-9 connectedSortable ver mb-4">
+							<div class="container">
+								<div class="card mb-4">
+
+
+									<div class="card-header">
+
+
+										<span class="lead cor2 ">Prova<br>Manhã - Tuma A</span>
+									</div>
+
+									<div class="card-body">
+									
+									    <div class="container c mb-3">
+									    
+									       
+									       
+									       <a class="container btn btn-primary botao mb-3" href="/Secretaria-Provas-Marcadas">
+									          Voltar
+									       </a>
+									    </div>
+
+
+
+										<table class="table-hover container  mb-3">
+
+                                                                        
+                                                                        
+                                                                        <thead> 
+                                                                        
+                                                                        
+                                                                            <tr class="corDaLinha">
+                                                                               
+                                                                               <th class="th">Data</th>
+                                                                               <th class="th">Desciplinas</th>
+                                                                               <th class="th">Professor</th>
+                                                                               <th class="th">Eliminar</th>
+                                                                               
+                                                                               
+                                                                            
+                                                                            </tr>
+                                                                        </thead>
+                                                                        
+                                                                        <tbody>
+                                                                        
+                                                                            <tr>
+                                                                            
+                                                                               <td >10/07/2020</td>
+                                                                               <th>Matemática</th>
+                                                                               <td>Euclair Thompson</td>
+                                                                               <td>Excluir</td>
+                                                                               
+                                                                            
+                                                                            </tr>
+                                                                             <tr>
+                                                                            
+                                                                               <td >10/07/2020</td>
+                                                                               <th>Matemática</th>
+                                                                               <td>Euclair Thompson</td>
+                                                                               <td>Excluir</td>
+                                                                               
+                                                                            
+                                                                            </tr>
+                                                                             
+                                                                            
+                                                                               <tr>
+                                                                            
+                                                                               <td >10/07/2020</td>
+                                                                               <th>Matemática</th>
+                                                                               <td>Euclair Thompson</td>
+                                                                               <td>Excluir</td>
+                                                                               
+                                                                            
+                                                                            </tr>
+                                                                               
+                                                                            
+                                                                             
+                                                                        
+                                                                        </tbody>
+                                                                        
+																		
+
+																	</table>
+									</div>
+
+
+								</div>
+
+								
+
+
+							</div>
+
+
+						</section>
+           
+           
+                        <footer class="footer">
+									<div class="container-fluid">
+										<p class="copyright text-center txt-block">
+											Copyright &copy; <a herf="/index">WebGenius</a> 2020.
+										</p>
+									</div>
+								</footer>
+           
+         
+        </div>
+                           </div>
+						</section>
+
+
+
+						<!-- /.Left col -->
+						<!-- right col (We are only adding the ID to make the widgets sortable)-->
+
+						<!-- right col -->
+					</div>
+					<!-- /.row (main row) -->
+				</div>
+				<!-- /.container-fluid -->
+			
+
+
+
+
+
+
+	<script type="text/javascript"
+		src="webgenius/Professor/js/jquery-1.11.1.min.js"></script>
+	<script type="text/javascript" src="webgenius/Professor/js/wow.min.js"></script>
+	<script type="text/javascript"
+		src="webgenius/Professor/js/javascript.js"></script>
+	<script src="webgenius/Professor/js/bootstrap.min.js"></script>
+	<script
+		src="http://cdn.jsdelivr.net/webshim/1.12.4/extras/modernizr-custom.js"></script>
+	<!-- polyfiller file to detect and load polyfills -->
+	<script src="http://cdn.jsdelivr.net/webshim/1.12.4/polyfiller.js"></script>
+
+
+
+	<!-- jQuery -->
+	<script src="plugins/jquery/jquery.min.js"></script>
+	<!-- jQuery UI 1.11.4 -->
+	<script src="plugins/jquery-ui/jquery-ui.min.js"></script>
+	<!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
+	<script>
+              $.widget.bridge('uibutton', $.ui.button)
+            </script>
+	<!-- Bootstrap 4 -->
+	<script src="plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+	<!-- ChartJS -->
+	<script src="plugins/chart.js/Chart.min.js"></script>
+	<!-- Sparkline -->
+	<script src="plugins/sparklines/sparkline.js"></script>
+	<!-- JQVMap -->
+	<script src="plugins/jqvmap/jquery.vmap.min.js"></script>
+	<script src="plugins/jqvmap/maps/jquery.vmap.usa.js"></script>
+	<!-- jQuery Knob Chart -->
+	<script src="plugins/jquery-knob/jquery.knob.min.js"></script>
+	<!-- daterangepicker -->
+	<script src="plugins/moment/moment.min.js"></script>
+	<script src="plugins/daterangepicker/daterangepicker.js"></script>
+	<!-- Tempusdominus Bootstrap 4 -->
+	<script
+		src="plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js"></script>
+	<!-- Summernote -->
+	<script src="plugins/summernote/summernote-bs4.min.js"></script>
+	<!-- overlayScrollbars -->
+	<script
+		src="plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js"></script>
+	<!-- AdminLTE App -->
+	<script src="dist/js/adminlte.js"></script>
+	<!-- AdminLTE dashboard demo (This is only for demo purposes) -->
+	<script src="dist/js/pages/dashboard.js"></script>
+	<!-- AdminLTE for demo purposes -->
+	<script src="dist/js/demo.js"></script>
+
+	<script type="text/javascript">
+                webshims.setOptions('waitReady', false);
+                webshims.setOptions('forms-ext', {
+                    types: 'date'
+                });
+                webshims.polyfill('forms forms-ext');
+            </script>
+
+</body>
+
+</html>

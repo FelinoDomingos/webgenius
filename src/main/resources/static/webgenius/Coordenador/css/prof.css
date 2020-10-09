@@ -1,0 +1,162 @@
+body {
+    background-color: #fff !important;
+    width: 100%;
+}
+
+td,
+th {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+}
+
+tr:nth-child(even) {
+    background-color: #dddddd;
+}
+
+.len {
+    width: 50%;
+    height: 50%;
+}
+
+.begin-header {
+    font-family: 'Roboto', sans-serif;
+    text-align: center;
+    padding-top: 1px;
+}
+
+.img-hand {
+    padding-left: 333px;
+}
+
+#media {
+    font-family: 'Roboto', sans-serif;
+    padding-top: 26px;
+}
+
+#ira {
+    font-family: 'Roboto', sans-serif;
+    padding-top: 6px;
+}
+
+#situacao {
+    font-family: 'Roboto', sans-serif;
+    padding-top: 4px;
+}
+
+.txt-block {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -o-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.btn-primary {
+    margin-top: 1px;
+    background-color: #fff !important;
+    color: #00628a !important;
+    border: none;
+}
+
+hr {
+    min-width: 95%;
+    border: none;
+    background-color: #2f415f;
+    color: #2f415f;
+    /* IE6 e 7*/
+    height: 1px;
+    background-image: linear-gradient(to right, #2f415f, #2f415f, #2f415f);
+}
+
+.sidebar {
+    background-color: rgb(53, 113, 128) !important;
+}
+
+.sidebar-wrapper {
+    background-color: rgb(38, 83, 94)!important;
+}
+
+.sub-header {
+    margin-top: auto;
+}
+
+#margin-empresa {
+    margin-top: -6px;
+}
+
+#margin-post {
+    margin-top: -14px;
+}
+
+#margin-tipo {
+    margin-top: -19px;
+}
+
+#btn-vaga {
+    margin-top: -60px;
+    position: relative;
+    float: right;
+}
+
+.card {
+    width: 1030px;
+}
+
+.title {
+    color: #151326;
+    font-family: 'Roboto', sans-serif;
+    text-align: center;
+}
+
+.visualizar {
+    cursor: pointer;
+}
+
+.hbar {
+    font-size: 25px;
+    margin-top: -5px;
+}
+
+input.but:hover,
+textarea:hover {
+    background-color: #dddddd;
+}
+
+legend {
+    color: #888888;
+    font-weight: bold;
+    font-size: 13pt;
+    font-family: sans-serif;
+}
+
+fieldset {
+    border-color: #cecece;
+    margin: 20px;
+}
+
+.but {
+    margin-left: 800px;
+    margin-top: -50px;
+}
+
+.butup {
+    margin-left: 800px;
+    margin-top: -130px;
+}
+
+input.inp {
+    width: 50px;
+    font-family: 'Roboto', sans-serif;
+    ;
+    font-size: 20px;
+    line-height: inherit;
+}
+
+.mark {
+    background-color: #00628a
+}
+
+.calendar {
+    width: 130px
+}

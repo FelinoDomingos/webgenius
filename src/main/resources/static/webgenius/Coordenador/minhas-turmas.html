@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="SISACAD sistema academico da cadeira de engenharia de software." />
+    <meta name="keywords" content="sistema, academico, engenharia, software" />
+    <meta name="author" content="Guilherme Araujo" />
+    <link rel="shortcut icon" type="image/x-icon" href="imgs/favicon.png">
+    <title>SISACAD</title>
+    <link rel="stylesheet" type="text/css" href="webgenius/Coordenador/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="webgenius/Coordenador/css/prof.css">
+    <link rel="stylesheet" type="text/css" href="webgenius/Coordenador/css/light-bootstrap-dashboard.css" />
+    <link rel="stylesheet" type="text/css" href="webgenius/Coordenador/css/acc-wizard.min.css" />
+
+</head>
+
+<body>
+
+    <div class="wrapper">
+        <div class="sidebar" data-image="">
+            <div class="sidebar-wrapper">
+                <div class="logo">
+                    <h3><b>SISACAD</b></h3>
+                    <div><img src="imgs/favicon.png" class="len"></div>
+                </div>
+                <ul class="nav">
+                    <li>
+                        <a href="inicio.html">
+                            <p>Início</p>
+                        </a>
+                    </li>
+                    <li class="active">
+                        <a href="minhas-turmas.html">
+                            <p>Minhas turmas</p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="frequencia.html">
+                            <p>Frequência</p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="nota-avaliacao.html">
+                            <p>Notas e avaliações</p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="material-aula.html">
+                            <p>Material de aula</p>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="logout.html">
+                            <p>Logout</p>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="main-panel">
+            <nav class="navbar navbar-default navbar-fixed">
+                <div class="container-fluid">
+                    <div class="navbar-header">
+                        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navigation-example-2">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    </div>
+                    <div class="collapse navbar-collapse">
+                        <ul class="nav navbar-nav navbar-left">
+                            <li><a href="cord-alunos.html">Alunos</a></li>
+                            <li><a href="cord-professores.html">Professores</a></li>
+                            <li><a href="cord-disciplinas.html">Disciplinas</a></li>
+                        </ul>
+                        <ul class="nav navbar-nav navbar-right">
+                            <li><a href="">Home</a></li>
+                            <li><a href="#">Sobre</a></li>
+                            <li><a href="#">Contato</a></li>
+                            <li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown">Cursos<b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    <li><a href="#">Engenharia de Computação</a></li>
+                                    <li><a href="#">Engenharia de Telecomunicações</a></li>
+                                    <li><a href="#">Engenharia Civil</a></li>
+                                    <li><a href="#">Engenharia Elétrica</a></li>
+                                    <li><a href="#">Engenharia Mecânica</a></li>
+                                </ul>
+                            </li>
+                            <li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown">Área por nível<b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    <li><a href="#">Técnico</a></li>
+                                    <li><a href="#">Tecnólogo</a></li>
+                                    <li><a href="#">Graduação</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+            <!-- Inicio do painel -->
+            <div class="content">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="panel">
+                                    <div class="panel-body txt-block">
+
+                                        <h2>Minhas Turmas</h2>
+                                        <div class="panel panel-default">
+                                            <div class="panel-heading">
+                                                <h4 class="panel-title">
+                                                    <a href="http://sathomas.me/acc-wizard/#viewpage" data-parent="#accordion-demo" data-toggle="collapse" class="collapsed">
+                                                        <h5 class="hbar">Engenharia de Computação - Estrutura de dados</h5>
+
+                                                    </a>
+                                                </h4>
+                                            </div>
+                                            <div id="viewpage" class="panel-collapse collapse" style="height: 36.4px;">
+                                                <div class="panel-body">
+                                                    <form id="form-viewpage">
+                                                        <h5> Seg - 17:30 - sala 27<br>Ter - 17:30 - BC18<br>Sex - 19:30 - LMC13<br></h5>
+                                                        <table style="width:100%">
+                                                            <tr>
+                                                                <th>Matriculas</th>
+                                                                <th>Alunos</th>
+                                                                <th>Faltas</th>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142017202125</td>
+                                                                <td>Howard Tony Stark</td>
+                                                                <td>4</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142017202123</td>
+                                                                <td>Bruce Wayne</td>
+                                                                <td>4</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142017202124</td>
+                                                                <td>Henry Hank Pym</td>
+                                                                <td>2</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142017202127</td>
+                                                                <td>Reed Richard</td>
+                                                                <td>0</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142017202129</td>
+                                                                <td>Pedro Álvares Cabral</td>
+                                                                <td>0</td>
+                                                            </tr>
+
+                                                        </table>
+                                                        <div class="acc-wizard-step"></div>
+                                                    </form>
+                                                </div>
+                                                <!--/.panel-body -->
+                                            </div>
+                                            <!-- /#adjusthtml -->
+                                        </div>
+                                        <!-- /.panel.panel-default -->
+                                        <div class="panel panel-default">
+                                            <div class="panel-heading">
+                                                <h4 class="panel-title">
+                                                    <a href="http://sathomas.me/acc-wizard/#prerequisites" data-parent="#accordion-demo" data-toggle="collapse" class="collapsed">
+                                                        <h5 class="hbar">Engenharia de Telecomunicações - Estrutura de dados</h5>
+                                                    </a>
+                                                </h4>
+                                            </div>
+                                            <div id="prerequisites" class="panel-collapse collapse" style="height: 36.4px;">
+                                                <div class="panel-body">
+                                                    <form id="form-viewpage">
+                                                        <h5> Seg - 13:30 - sala 28<br>Ter - 13:30 - BC16<br>Sex - 13:30 - LMC15<br></h5>
+                                                        <table style="width:100%">
+                                                            <tr>
+                                                                <th>Matriculas</th>
+                                                                <th>Alunos</th>
+                                                                <th>Faltas</th>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142017202225</td>
+                                                                <td>Peter Parker</td>
+                                                                <td>10</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142017222123</td>
+                                                                <td>Naruto Uzumaki</td>
+                                                                <td>2</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142017252124</td>
+                                                                <td>Bruce Banner</td>
+                                                                <td>6</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142117212127</td>
+                                                                <td>Clark Kent</td>
+                                                                <td>0</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142017202129</td>
+                                                                <td>Carlos Drummond de Andrade</td>
+                                                                <td>0</td>
+                                                            </tr>
+
+                                                        </table>
+                                                        <div class="acc-wizard-step"></div>
+                                                    </form>
+                                                </div>
+                                                <!--/.panel-body -->
+                                            </div>
+                                            <!-- /#prerequisites -->
+                                        </div>
+                                        <!-- /.panel.panel-default -->
+                                        <div class="panel panel-default">
+                                            <div class="panel-heading">
+                                                <h4 class="panel-title">
+                                                    <a href="http://sathomas.me/acc-wizard/#addwizard" data-parent="#accordion-demo" data-toggle="collapse" class="collapsed">
+                                                        <h5 class="hbar">Engenharia de Computação - Grafos</h5>
+                                                    </a>
+                                                </h4>
+                                            </div>
+                                            <div id="addwizard" class="panel-collapse collapse" style="height: 36.4px;">
+                                                <div class="panel-body">
+                                                    <form id="form-viewpage">
+                                                        <h5> Qua - 17:30 - sala 12<br>Qui - 15:30 - RAM18<br>Sab - 9:30 - LMC13<br></h5>
+                                                        <table style="width:100%">
+                                                            <tr>
+                                                                <th>Matriculas</th>
+                                                                <th>Alunos</th>
+                                                                <th>Faltas</th>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142917202141</td>
+                                                                <td>Sasuke Uchiha</td>
+                                                                <td>4</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142017202119</td>
+                                                                <td>Barry Allen</td>
+                                                                <td>4</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142017202125</td>
+                                                                <td>Oliver Queen</td>
+                                                                <td>2</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142017202112</td>
+                                                                <td>May Parker</td>
+                                                                <td>0</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142017202112</td>
+                                                                <td>Clarice Lispector</td>
+                                                                <td>0</td>
+                                                            </tr>
+
+                                                        </table>
+                                                        <div class="acc-wizard-step"></div>
+                                                    </form>
+                                                </div>
+                                                <!--/.panel-body -->
+                                            </div>
+                                            <!-- /#addwizard -->
+                                        </div>
+                                        <!-- /.panel.panel-default -->
+                                        <div class="panel panel-default">
+                                            <div class="panel-heading">
+                                                <h4 class="panel-title">
+                                                    <a href="http://sathomas.me/acc-wizard/#adjusthtml" data-parent="#accordion-demo" data-toggle="collapse" class="collapsed">
+                                                        <h5 class="hbar">Engenharia Mecânica - Cálculo III</h5>
+                                                    </a>
+                                                </h4>
+                                            </div>
+                                            <div id="adjusthtml" class="panel-collapse collapse" style="height: 36.4px;">
+                                                <div class="panel-body">
+                                                    <form id="form-viewpage">
+                                                        <h5> Ter - 9:30 - sala 9<br>Qua - 7:30 - BL12<br>Sex - 21:30 - LMC02<br></h5>
+                                                        <table style="width:100%">
+                                                            <tr>
+                                                                <th>Matriculas</th>
+                                                                <th>Alunos</th>
+                                                                <th>Faltas</th>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142017221125</td>
+                                                                <td>Italo Sarutobi</td>
+                                                                <td>4</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142017244123</td>
+                                                                <td>Marry Jane Watson</td>
+                                                                <td>4</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142017222124</td>
+                                                                <td>Jean Gray Phoenix</td>
+                                                                <td>2</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142017256127</td>
+                                                                <td>Natasha Romanoff</td>
+                                                                <td>0</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td>20142017267129</td>
+                                                                <td>Rachel de Queiroz</td>
+                                                                <td>0</td>
+                                                            </tr>
+
+                                                        </table>
+                                                        <div class="acc-wizard-step"></div>
+                                                    </form>
+                                                </div>
+                                                <!--/.panel-body -->
+                                            </div>
+                                            <!-- /#adjusthtml -->
+                                        </div>
+                                        <!-- /.panel.panel-default -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Inicio do rodapé -->
+                        <footer class="footer">
+                            <div class="container-fluid">
+                                <p class="copyright text-center txt-block">
+                                    Copyright &copy; SISACAD 2017.
+                                </p>
+                            </div>
+                        </footer>
+                        <!-- Fim do rodapé -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- javascript -->
+        <script type="text/javascript" src="webgenius/Coordenador/js/jquery-1.11.1.min.js"></script>
+        <script type="text/javascript" src="webgenius/Coordenador/js/wow.min.js"></script>
+        <script type="text/javascript" src="webgenius/Coordenador/js/javascript.js"></script>
+        <script src="webgenius/Coordenador/js/bootstrap.min.js"></script>
+        <script src="webgenius/Coordenador/js/acc-wizard.min.js"></script>
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js" type="text/javascript"></script>
+
+
+
+        <script>
+            function onNext(parent, panel) {
+                hash = "#" + panel.id;
+                $(".acc-wizard-sidebar", $(parent))
+                    .children("li")
+                    .children("a[href='" + hash + "']")
+                    .parent("li")
+                    .removeClass("acc-wizard-todo")
+                    .addClass("acc-wizard-completed");
+            }
+            $(window).load(function() {
+                $(".acc-wizard").accwizard({
+                    onNext: onNext
+                });
+            })
+        </script>
+
+</body>
+
+</html>

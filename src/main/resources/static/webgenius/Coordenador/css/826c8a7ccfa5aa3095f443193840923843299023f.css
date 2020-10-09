@@ -1,0 +1,28 @@
+@import url("https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css");
+@import url("https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css");
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+.jumbotron {
+  background: #009ACD !important;
+  color: #fff;
+  font-family: 'Roboto', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  padding: 30px;
+  -webkit-user-select:none;
+	-moz-user-select:none;
+	-o-user-select:none;
+	-ms-user-select:none;
+	user-select:none;
+}
+
+.login-form{width:390px; }
+.login-title{margin-top: -4px; font-family: 'Roboto', sans-serif; text-align: center; color: #009ACD;}
+
+.margin-contato {
+  height: 45px;
+}
