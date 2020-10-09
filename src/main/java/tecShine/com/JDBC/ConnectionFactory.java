@@ -74,14 +74,13 @@ public static Connection getConnection(){
 	}
 */
 	public static Connection getConnection() throws URISyntaxException, SQLException {
-	    URI jdbUri = new URI(System.getenv("JAWSDB_URL"));
+	    URI dbUri = new URI(System.getenv("CLEARDB_DATABASE_URL"));
 
-	    String username = jdbUri.getUserInfo().split(":")[0];
-	    String password = jdbUri.getUserInfo().split(":")[1];
-	    String port = String.valueOf(jdbUri.getPort());
-	    String jdbUrl = "jdbc:mysql://" + jdbUri.getHost() + ":" + port + jdbUri.getPath();
+	    String username = dbUri.getUserInfo().split(":")[0];
+	    String password = dbUri.getUserInfo().split(":")[1];
+	    String dbUrl = "jdbc:mysql://" + dbUri.getHost() + dbUri.getPath();
 
-	    return DriverManager.getConnection(jdbUrl, username, password);
+	    return DriverManager.getConnection(dbUrl, username, password);
 	}
 
 	
