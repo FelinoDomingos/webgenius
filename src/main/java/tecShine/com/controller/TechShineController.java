@@ -174,14 +174,14 @@ public class TechShineController {
 			
 			    BD_Criar_SQL bd = new BD_Criar_SQL();
 			    Salvar_SQL s = new Salvar_SQL();
-			    bd.criarBaseDeDados("wg");
+			   // bd.criarBaseDeDados("wg");
 			    
 			    Tabelas_Criar_SQL c= new Tabelas_Criar_SQL();
-			    c.criarTabelaPCA_WG("wg", "PCA");
+			   // c.criarTabelaPCA_WG("wg", "PCA");
 			     
 			    
 			    
-			    c.criarTabelaEscolas_WG();
+			   // c.criarTabelaEscolas_WG();
 			
 			podeEntrar = true;
 		}else {
