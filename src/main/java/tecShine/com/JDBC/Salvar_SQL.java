@@ -1,5 +1,6 @@
 package tecShine.com.JDBC;
 
+import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -8,13 +9,11 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Random;
 
-import org.springframework.web.multipart.MultipartResolver;
-import org.springframework.web.multipart.commons.CommonsMultipartResolver;
-
 import tecShine.com.AcessoInteligente.AcessoInteligente;
 import tecShine.com.dao.Verificar_Login;
 import tecShine.com.model.Agenda;
 import tecShine.com.model.Aluno;
+import tecShine.com.model.Conexao;
 import tecShine.com.model.Coordenador;
 import tecShine.com.model.Curso;
 import tecShine.com.model.Estagio;
@@ -44,8 +43,8 @@ public class Salvar_SQL {
 	private  Controle_ID_SQL cID= new Controle_ID_SQL();
 
 
-	private String BD;
 	int actualizado;
+
 
 	
 	/**
@@ -61,17 +60,17 @@ public class Salvar_SQL {
 		Tabelas_Criar_SQL c = new Tabelas_Criar_SQL();
 		Pesquisar_SQL p = new Pesquisar_SQL();
 		
-		
-		
-		  
-		String nomeDaEscola=admin.getInstituicao();
-		String BD= ta.tirarCaracteres2(nomeDaEscola);
-		
 		String bi=admin.getBi();
 		
-		int codigo= p.pesquisarUmConteudo_Numa_Linha_Int("wg", "Escolas", "id", "bi", bi, 0);
-		String nomeDaEscola2=codigo+"_"+nomeDaEscola;
-		this.BD=nomeDaEscola2;
+		  
+		
+		String nomeDaEscola=admin.getInstituicao();
+		String BD= p.pesquisarUmConteudo_Numa_Linha_String("webgenius", "escolas", "escola2", "bi", bi, 0);
+		
+		System.out.println(">>>>>>>>>>>>>>>>>  BASE DE DADOS:"+BD);
+		
+		String nomeDaEscola2= BD;
+
 		
 		
 		
@@ -81,9 +80,8 @@ public class Salvar_SQL {
 		// Cursos, pca_escola,infoescola,infoescola2,
 		// infoescola_Financa
 		
-		BD=nomeDaEscola2;
 		
-	    bd.criarBaseDeDados(BD);
+	    //bd.criarBaseDeDados(BD);
 
 	    c.criarTabelaAdmin(BD, "pca_"+BD); 
 	    c.criarTabela_Cursos(BD);
@@ -159,6 +157,17 @@ public class Salvar_SQL {
 	    inserirLinha_DataProva(BD); 
 	    inserir_No_AdminFinanca(BD, bi);
 	    
+	    
+	    dadosDoPCA(nomeDaEscola2,admin,bi,nomeDaEscola);
+		return nomeDaEscola2;
+	}
+	
+	
+	
+	public void dadosDoPCA(String BD,Fase2 admin,String bi,String nomeDaEscola) {
+		
+		
+		System.out.println("***********  ===========   Inserirndo no PCA: ");
 		String sql="insert into pca_"+BD+" values(?,?,?,?,?,?,?,?,?,?)";
 		
 		
@@ -169,28 +178,34 @@ public class Salvar_SQL {
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			
+			
+			con = ConnectionFactory.getConnection(BD);
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			
 			
 		     
 		     
-		     
+		     String sigla =admin.getSigla();
 					
 			
 			stm.setString(1, admin.getPca());
-			stm.setString(2, admin.getSigla());
+			stm.setString(2, sigla);
 			stm.setString(3, bi);
 			stm.setString(4, admin.escola.getContrato());
 			stm.setInt(5, admin.escola.getValor());
-			stm.setString(6,nomeDaEscola+" PCA");
+			stm.setString(6,sigla+" PCA");
 			stm.setString(7, bi);
 			stm.setString(8, "");
 			stm.setString(9, nomeDaEscola);
 			
-			stm.setBlob(10, admin.getLogotipo().getInputStream(), admin.getLogotipo().getSize());
-			
+			Blob b = null ;
+			stm.setBlob(10, b);
 			
 			
 			
@@ -215,8 +230,6 @@ public class Salvar_SQL {
 			}
 			
 		}
-		
-		return nomeDaEscola2;
 	}
 	
 	
@@ -257,7 +270,11 @@ public class Salvar_SQL {
 			
 			
 			try{
-				con = ConnectionFactory.getConnection();
+				
+				Conexao conexao = new Conexao();
+				conexao.setBD(BD);
+				
+				con = ConnectionFactory.getConnection(BD);
 				stm = con.prepareStatement(sql);
 				stm.executeUpdate(usarBD);
 				
@@ -451,7 +468,7 @@ public class Salvar_SQL {
              		// Está Vazia, permitindo assim colocar o aluno nessa Turma Filtrada
              		if(codigo<=nDeAlunos) {
              			
-             			biComparacao = p.pesquisarUmConteudo_Numa_Linha_String(BD, turmasNoTurno_Filtrada.get(l)+"_dadospessoais", "bi", "bi", bi, 0);
+             			biComparacao = p.pesquisarUmConteudo_Numa_Linha_String(BD, turmasNoTurno_Filtrada.get(l)+"_Avaliacao", "bi", "bi", bi, 0);
              			
              			if(bi.equals(biComparacao)) {
              				
@@ -459,7 +476,7 @@ public class Salvar_SQL {
              				
              				++l;
              				break sair;
-             			}else {
+             	 		}else {
              				
              				
              				  
@@ -491,7 +508,7 @@ public class Salvar_SQL {
                  			//Financeiros  e Academicos(Avaliacao,Prova,E Media) do aluno
                  			
                  			
-                 			inserir_DAdosPessoais(BD, turmasNoTurno_Filtrada.get(l), aluno,null);
+                 			inserir_DadosPessoais(BD, turmasNoTurno_Filtrada.get(l), aluno,null);
                  			
                  			String[] a = turmasNoTurno_Filtrada.get(l).split("_");
                  			String usuario = a[0];
@@ -551,7 +568,7 @@ public class Salvar_SQL {
                      			//Aqui está a ser efectivamente colocado o aluno na Turma
                      			
              					
-             					biComparacao = p.pesquisarUmConteudo_Numa_Linha_String(BD, turmasNoTurno_Filtrada.get(l)+"_dadospessoais", "bi", "bi", bi, 0);
+             					biComparacao = p.pesquisarUmConteudo_Numa_Linha_String(BD, turmasNoTurno_Filtrada.get(l)+"_Avaliacao", "bi", "bi", bi, 0);
                      			
                      			if(bi.equals(biComparacao)) {
                      				
@@ -583,7 +600,7 @@ public class Salvar_SQL {
                          			//Financeiros  e Academicos(Avaliacao,Prova,E Media) do aluno
                          			
                          			
-                         			inserir_DAdosPessoais(BD, nomeDaTurma,aluno,null);
+                         			inserir_DadosPessoais(BD, nomeDaTurma,aluno,null);
                          			
                          			String[] a = nomeDaTurma.split("_");
                          			String usuario = a[0];
@@ -649,6 +666,266 @@ public class Salvar_SQL {
 		return alunoNaTurma;
 		
 	}
+	
+	
+	
+	public ArrayList<String> inserirAluno2(String BD,
+   		 Aluno aluno  ){
+   	   
+     Pesquisar_SQL p= new Pesquisar_SQL();
+     Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
+       
+     ArrayList<String> turmasNoTurno_Filtrada= new ArrayList<>();
+     String bi= aluno.getBi();
+     String nome= aluno.getNome();
+     
+     aluno.setNome(nome);
+     aluno.setBi(bi);
+     
+     
+     
+     String nivel = aluno.getNivel();
+     String turno= aluno.getTurno();
+     String curso= aluno.getCurso();
+     
+        aluno.setCurso(curso);
+		aluno.setNivel(nivel);
+		aluno.setTurno(turno);
+     
+      Turma alunoNaTurma = new  Turma();
+      alunoNaTurma.setAlunoInserido(false);
+       String turma; 
+    	
+    	turno= turno.toLowerCase();
+    	String turno2=(String)turno.subSequence(0, 1);
+    	String nivel2=(String)nivel.subSequence(0, 2);
+    	
+    	
+    	String abeviaturaCurso=curso;
+    	abeviaturaCurso=abeviaturaCurso.substring(0, 3).toLowerCase();
+
+    	String turma_Em_Minuscula;
+    	
+    	
+
+    	String nomeTurma="turma"+turno2+""+abeviaturaCurso+""+nivel2;
+    	
+    	
+    	ArrayList<String> turmasNoTurno= p.pesquisarTudoEmString(BD, "Controle_Turmas", turno);
+       
+    	System.out.println("Entrando nas Turmas ... ");
+    	if(turmasNoTurno!=null) {
+    		
+    		System.out.println("Entrou nas Turmas Do Turno");
+    		
+    		
+        	
+        	for (String turmas : turmasNoTurno) {
+   			
+        		turma_Em_Minuscula= turmas.toLowerCase();
+        		System.out.println("nomeTurma: "+nomeTurma);
+        		System.out.println("Turma Filtrada: "+turmas);
+        		if(turma_Em_Minuscula.contains(nomeTurma)) {
+        			
+        			
+        			if(turmas.contains("__")) {
+        				
+        				turma= ta.tirarCaracteres(turmas);
+        				turmasNoTurno_Filtrada.add(turma);
+        			}else {
+        				
+        				turma = turmas;
+        				turmasNoTurno_Filtrada.add(turma);
+        			}
+        			
+        			
+        		}
+   		}
+        	
+        	
+             
+        	
+    		
+    	}
+    	
+    	
+    	
+    	
+		return turmasNoTurno_Filtrada;
+		
+	}
+	
+	
+	public Turma inserirAluno3(String BD,
+   		 Aluno aluno,String turma,String numeroDoSistema ){
+   	   
+     Tabela_Actualizar_SQL t= new Tabela_Actualizar_SQL();
+     Pesquisar_SQL p= new Pesquisar_SQL();
+     Controle_ID_SQL cID= new Controle_ID_SQL();
+     AcessoInteligente integrante=new AcessoInteligente();
+       
+     
+     String nivel = aluno.getNivel();
+     String turno= aluno.getTurno();
+     String curso= aluno.getCurso();
+     
+     String bi= aluno.getBi();
+     String nome= aluno.getNome();
+     
+     if((aluno.isSemBI())||(bi.equalsIgnoreCase("0"))) {
+    	 
+    	 bi = numeroDoSistema;
+     }
+     aluno.setNome(nome);
+     aluno.setBi(bi);
+     
+     Turma alunoNaTurma = new  Turma();
+     alunoNaTurma.setAlunoInserido(false);
+      int codigo=0;  
+   	
+   
+   	int nDoProcesso;
+   	String biComparacao;
+     
+     
+     ArrayList<String> turmasNoTurno= p.pesquisarTudoEmString(BD, "Controle_Turmas", turno);
+     
+     sair:
+     for (String minhaTurma : turmasNoTurno) {
+		
+    	 if(minhaTurma.contains(turma)) {
+    		 
+    		 biComparacao = p.pesquisarUmConteudo_Numa_Linha_String(BD, minhaTurma+"_Avaliacao", "bi", "bi", bi, 0);
+    		 
+    		 
+    		 if(bi.equals(biComparacao)) {
+    				
+    				alunoNaTurma.setAlunoInserido(false);
+    				
+    				
+    				break sair;
+    			}else {
+    				
+    				codigo= cID.recuperarCodigo(BD, minhaTurma, "id");
+    				++codigo;
+    				  
+    				System.out.println("Entroe Aqui");
+    				nDoProcesso = t.alterarTabela_Aluno(BD, minhaTurma, aluno, codigo);
+    				
+    				inserirProva_Avaliacao_Media_Matricula(BD, minhaTurma, codigo, curso, "prova", nome, bi,minhaTurma,nivel);
+    				inserirProva_Avaliacao_Media_Matricula(BD, minhaTurma, codigo, curso, "avaliacao", nome,bi,minhaTurma,nivel);
+    				inserirProva_Avaliacao_Media_Matricula(BD, minhaTurma, codigo, curso, "media", nome, bi,minhaTurma,nivel);
+    				
+    				
+    				
+    				
+    				
+    				// O codigo abaixo vai colocar os dados Pessoais, De Acesso,
+    				//Financeiros  e Academicos(Avaliacao,Prova,E Media) do aluno
+    				
+    				
+    				inserir_DadosPessoais(BD, minhaTurma, aluno,null);
+    				
+    				String[] a = minhaTurma.split("_");
+    				String usuario = a[0];
+    				inserir_DAdosAcesso(BD, minhaTurma, usuario, bi,"",true);
+    				inserir_DAdosFinanca_Aluno(BD, minhaTurma, nivel, curso);
+    				
+    				ArrayList<String> sigla = p.pesquisarTudoEmString(BD, "pca_"+BD, "sigla");
+    				String usuario2=null;
+    				if(sigla.size() >0) {
+    					
+    					usuario2 = sigla.get(0)+" "+turma.substring(0, 1)+" AL";
+    				}
+    				if(minhaTurma.contains("__")) {
+    					
+    					turma= t.tirarCaracteres(minhaTurma);
+    					alunoNaTurma.setTurma(turma);
+    				    alunoNaTurma.setUsuario(sigla.get(0)+" "+usuario+" AL");
+    				}else {
+    					
+    					
+    					
+    					turma = minhaTurma;
+    					alunoNaTurma.setTurma(turma);
+    					alunoNaTurma.setUsuario(sigla.get(0)+" "+usuario+" AL");
+    				}
+    				
+    				alunoNaTurma.setAlunoInserido(true);
+    				alunoNaTurma.setAluno(integrante.nome);
+    				
+    				alunoNaTurma.setnDoProcesso(nDoProcesso);
+    				alunoNaTurma.setAluno(nome);
+    				
+    				
+    				
+    				integrante=null;
+    			
+    				break sair;
+    			}
+    	 }
+	}
+     
+    	
+		return alunoNaTurma;
+		
+	}
+	
+	
+	
+	public ArrayList<String> turmas_Disponiveis(String BD,
+			ArrayList<String> turmas ){
+	   	   
+	     Pesquisar_SQL p= new Pesquisar_SQL();
+	     int nDeAlunos;
+	     int codigo;
+	       
+	     ArrayList<String> turmasDisponiveis = new ArrayList<>(); 
+	     
+	     if(turmas!=null) {
+		     for(int i=0;i<turmas.size();i++) {
+		    	 
+		    	 nDeAlunos= p.pesquisarUmConteudo_Numa_Linha_Int(BD, turmas.get(i), "NDeAlunos", "id", "", 1);
+	      		 codigo= cID.recuperarCodigo(BD, turmas.get(i), "id");
+	      		 
+	      		 if(codigo<nDeAlunos) {
+	      			 
+	      			turmasDisponiveis.add(turmas.get(i));
+	      		 }
+	      		
+		     }
+	     }
+	    	
+			return turmasDisponiveis;
+			
+		}
+	
+	public ArrayList<String> turmas_Indisponiveis(String BD,
+			ArrayList<String> turmas ){
+	   	   
+	     Pesquisar_SQL p= new Pesquisar_SQL();
+	     int nDeAlunos;
+	     int codigo;
+	       
+	     ArrayList<String> turmasIndisponiveis = new ArrayList<>(); 
+	     
+	     if(turmas!=null) {
+		     for(int i=0;i<turmas.size();i++) {
+		    	 
+		    	 nDeAlunos= p.pesquisarUmConteudo_Numa_Linha_Int(BD, turmas.get(i), "NDeAlunos", "id", "", 1);
+	      		 codigo= cID.recuperarCodigo(BD, turmas.get(i), "id");
+	      		 
+	      		 if(codigo>=nDeAlunos) {
+	      			 
+	      			turmasIndisponiveis.add(turmas.get(i));
+	      		 }
+	      		
+		     }
+	     }
+	    	
+			return turmasIndisponiveis;
+			
+		}
        
        
        public void inserirLinhaVazia1(String BD,String tabela
@@ -668,7 +945,11 @@ public class Salvar_SQL {
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			
+			con = ConnectionFactory.getConnection(BD);
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			
@@ -732,7 +1013,11 @@ public class Salvar_SQL {
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			
+			con = ConnectionFactory.getConnection(BD);
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			
@@ -788,7 +1073,11 @@ public class Salvar_SQL {
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			
+			con = ConnectionFactory.getConnection(BD);
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			int codigo=0;
@@ -844,7 +1133,12 @@ public class Salvar_SQL {
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			
+			
+			con = ConnectionFactory.getConnection(BD);
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			
@@ -905,7 +1199,12 @@ public class Salvar_SQL {
 			
 			
 			try{
-				con = ConnectionFactory.getConnection();
+				
+				Conexao conexao = new Conexao();
+				conexao.setBD(BD);
+				
+				
+				con = ConnectionFactory.getConnection(BD);
 				stm = con.prepareStatement(sql);
 				stm.executeUpdate(usarBD);
 				
@@ -971,7 +1270,12 @@ public class Salvar_SQL {
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			
+			
+			con = ConnectionFactory.getConnection(BD);
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			
@@ -1019,7 +1323,7 @@ public class Salvar_SQL {
     	 
 	
 		
-		String sql="insert into agendadedoc values(?,?,?,?)";
+		String sql="insert into AgendaDeDoc values(?,?,?,?)";
 		
 		
 		String usarBD="use "+BD;
@@ -1029,7 +1333,12 @@ public class Salvar_SQL {
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			
+			
+			con = ConnectionFactory.getConnection(BD);
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			
@@ -1037,7 +1346,7 @@ public class Salvar_SQL {
 			
 			int codigo;
 			
-			codigo= cID.recuperarCodigo(BD, "agendadedoc", "id");
+			codigo= cID.recuperarCodigo(BD, "AgendaDeDoc", "id");
 			++codigo;
 			stm.setInt(1, codigo);
 			stm.setString(2,documento);
@@ -1095,7 +1404,12 @@ public class Salvar_SQL {
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			
+			
+			con = ConnectionFactory.getConnection(BD);
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			
@@ -1151,7 +1465,7 @@ public class Salvar_SQL {
     	   
     	   
     	
-    	   
+    	   Pesquisar_SQL p = new Pesquisar_SQL();
 		
 		String sql="insert into  Disciplinas_Dos_Profs values(?,?,?,?,?,?,?,?,?)";
 		
@@ -1161,62 +1475,145 @@ public class Salvar_SQL {
 		
 		 Connection con=null;
 		 PreparedStatement stm=null ;
-		
-		try{
-			con = ConnectionFactory.getConnection();
-			stm = con.prepareStatement(sql);
-			stm.executeUpdate(usarBD);
-			
-			
-			
-			
-			
-			
+		 
+		 
+		 try{
+				
+				Conexao conexao = new Conexao();
+				conexao.setBD(BD);
+				
+				
+				con = ConnectionFactory.getConnection(BD);
+				stm = con.prepareStatement(sql);
+				stm.executeUpdate(usarBD);
+				
+				
+				
+				
+				
+				
 
-		
 			
-			codigo= cID.recuperarCodigo(BD, "Disciplinas_Dos_Profs", "id");
-			++codigo;
-			stm.setInt(1, codigo);
-			stm.setString(2, curso);
-			stm.setString(3, professor);
-			stm.setString(4, desciplina);
-			stm.setString(5, nivel);
-			stm.setString(6, turma);
-			stm.setInt(7, tempoPorDesciplinaNaTurma);
-			stm.setString(8, bi);
-			stm.setString(9, turno);
-			
+				
+				codigo= cID.recuperarCodigo(BD, "Disciplinas_Dos_Profs", "id");
+				++codigo;
+				stm.setInt(1, codigo);
+				stm.setString(2, curso);
+				stm.setString(3, professor);
+				stm.setString(4, desciplina);
+				stm.setString(5, nivel);
+				stm.setString(6, turma);
+				stm.setInt(7, tempoPorDesciplinaNaTurma);
+				stm.setString(8, bi);
+				stm.setString(9, turno);
+				
 
 
-			stm.executeUpdate();
+				stm.executeUpdate();
+				
 			
-		
-			System.out.println(" Dados Inseridos!!!");
+				System.out.println(" Dados Inseridos!!!");
+				
 			
-		
-			
-		}catch (Exception e) {
-			e.printStackTrace();
-		}
-		finally {
-			try {
-				con.close();
-				stm.close();
-				 
-
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
+				
+			}catch (Exception e) {
 				e.printStackTrace();
 			}
-			
-		}
+			finally {
+				try {
+					con.close();
+					stm.close();
+					 
+
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+			}
+		
 	}
+       
+       
+       public void inserir_Disciplinas_Prof2(String BD,ArrayList<String> cursos,
+    		   String professor,ArrayList<String> desciplinas,ArrayList<String> niveis,
+    		   ArrayList<String> turmas,
+    		   int tempoPorDesciplinaNaTurma,String bi,ArrayList<String> turnos
+    		   ){
+    	   
+    	   
+    	   Pesquisar_SQL p = new Pesquisar_SQL();
+    	   String turno2;
+    	   String nivel2;
+    	   String abeviaturaCurso;
+    	   String nomeTurma;
+    	   String turma_Em_Minuscula;
+    	   
+    	   for(String curso: cursos) {
+    		   
+    		   for(String turno: turnos) {
+    			   
+    			   for(String nivel: niveis) {
+    				   
+    				   
+    				   for(String turma: turmas) {
+    					   
+    					   
+    					   turno= turno.toLowerCase();
+    				    	 turno2=(String)turno.subSequence(0, 1);
+    				    	 nivel2=(String)nivel.subSequence(0, 2);
+    				    	
+    				    	
+    				    	 abeviaturaCurso=curso;
+    				    	abeviaturaCurso=abeviaturaCurso.substring(0, 3).toLowerCase();
+
+    				    	nomeTurma="turma"+turno2+""+abeviaturaCurso+""+nivel2;
+    				    	
+    				    	turma_Em_Minuscula= turma.toLowerCase();
+    		        		System.out.println("nomeTurma: "+nomeTurma);
+    		        		System.out.println("Turma Filtrada: "+turmas);
+    		        		if(turma_Em_Minuscula.contains(nomeTurma)) {
+    		        			
+    		        			
+    		        			for(String desciplina: desciplinas) {
+    		        				
+    		        				
+    		        				if(desciplina.contains(nivel2)) {
+    		        					
+    		        					
+    		        					String prof="";
+       		      					   prof = p.pesquisarUmConteudo_Numa_Linha_String(BD, "Disciplinas_Dos_Profs", "professor", "desciplina", desciplina, 0);
+       		      					   
+       		      					   if(prof.equalsIgnoreCase("")) {
+       		      						  
+       		      						   inserir_Disciplinas_Prof(BD, curso, professor, desciplina, nivel,turma,0,bi,turno);
+       		      					   }else {
+       		      						   
+       		      						   //resultado= "Ja Existe Professor(a) de "+desciplina;
+       		      					   }
+       		        					
+       		        					
+    		        				}
+    		        				
+    		        				
+    		        			}
+    		        			
+    		        		}
+    				    	
+    				   }
+    			   }
+    			   
+    		   }
+    		   
+    		   
+    	   }
+    	   
+       }
        
    
        
        
-       public void inserir_DAdosPessoais(String BD,String tabela,
+       public void inserir_DadosPessoais(String BD,String tabela,
                Aluno aluno, Funcionario func
     		   ){
     		
@@ -1233,7 +1630,12 @@ public class Salvar_SQL {
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			
+			
+			con = ConnectionFactory.getConnection(BD);
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			
@@ -1248,7 +1650,7 @@ public class Salvar_SQL {
 				++codigo;
 				stm.setInt(1, codigo);
 				stm.setString(2, aluno.getBi());
-				stm.setInt(3, aluno.getTelefone());
+				stm.setInt(3, 0);
 				stm.setInt(4, aluno.getAlternativo1());
 				stm.setInt(5, aluno.getAlternativo2());
 				stm.setString(6, aluno.getEmail());
@@ -1323,8 +1725,12 @@ public class Salvar_SQL {
 				 
 				 ArrayList<String> conteudo= p.pesquisarTudoEmString(BD, "pca_"+BD, "instituicao");
 				 
-				 String instituicao = conteudo.get(0);
-				 ta.actualizarColuna_QualquerLinha_String(BD, tabela+"_DadosPessoais", "instituicao", instituicao, 1);
+				 if(conteudo.size() > 0) {
+					 
+					 String instituicao = conteudo.get(0);
+					 ta.actualizarColuna_QualquerLinha_String(BD, tabela+"_DadosPessoais", "instituicao", instituicao, 1);
+				 }
+				
 			 }
 		
 	
@@ -1359,7 +1765,7 @@ public class Salvar_SQL {
     	   
     		
 		Pesquisar_SQL p = new Pesquisar_SQL();
-		ArrayList<String> nomeSaEscola= p.pesquisarTudoEmString(BD, "pca_"+BD, "instituicao");
+		ArrayList<String> sigla= p.pesquisarTudoEmString(BD, "pca_"+BD, "sigla");
 		
 		String sql;
 		if(e_aluno) {
@@ -1369,9 +1775,9 @@ public class Salvar_SQL {
 		}
 		
 		String escola="";
-		if(nomeSaEscola.size()>0) {
+		if(sigla.size()>0) {
 			
-			escola = nomeSaEscola.get(0);
+			escola = sigla.get(0);
 		}
 		String usarBD="use "+BD;
 		
@@ -1380,7 +1786,10 @@ public class Salvar_SQL {
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			con = ConnectionFactory.getConnection(BD);
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			
@@ -1453,7 +1862,12 @@ public class Salvar_SQL {
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			
+			
+			con = ConnectionFactory.getConnection(BD);
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			
@@ -1527,7 +1941,12 @@ public class Salvar_SQL {
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			
+			
+			con = ConnectionFactory.getConnection(BD);
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			
@@ -1605,7 +2024,12 @@ public class Salvar_SQL {
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			
+			
+			con = ConnectionFactory.getConnection(BD);
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			
@@ -1656,7 +2080,7 @@ public class Salvar_SQL {
   		   String usarBD="use "+BD;
     	   
   		   
-  		 ArrayList<String> desciplinas= p.pesquisarTudoEmString(BD, "cursos_disciplinas", curso);
+  		 ArrayList<String> desciplinas= p.pesquisarTudoEmString(BD, "Cursos_Disciplinas", curso);
  		int contador=0;
  		
  		ArrayList<String> dessciplinasFiltrada = new ArrayList<>();
@@ -1687,7 +2111,12 @@ public class Salvar_SQL {
     		   sql="insert into "+tabela+"_Prova values(?,?,?,?,"+trechoSQL+")";
     		   
     		   try{
-    				con = ConnectionFactory.getConnection();
+    			   
+    			   Conexao conexao = new Conexao();
+    				conexao.setBD(BD);
+    				
+    				
+    				con = ConnectionFactory.getConnection(BD);
     				stm = con.prepareStatement(sql);
     				stm.executeUpdate(usarBD);
     				
@@ -1743,7 +2172,12 @@ public class Salvar_SQL {
     		   sql="insert into "+tabela+"_Avaliacao values(?,?,?,?,"+trechoSQL+")";
     		   
     		   try{
-    				con = ConnectionFactory.getConnection();
+    			   
+    			   Conexao conexao = new Conexao();
+    				conexao.setBD(BD);
+    				
+    				
+    				con = ConnectionFactory.getConnection(BD);
     				stm = con.prepareStatement(sql);
     				stm.executeUpdate(usarBD);
     				
@@ -1797,7 +2231,12 @@ public class Salvar_SQL {
     		   sql="insert into "+tabela+"_Media values(?,?,?,?,"+trechoSQL+",?)";
     		   
     		   try{
-    				con = ConnectionFactory.getConnection();
+    			   
+    			   Conexao conexao = new Conexao();
+    				conexao.setBD(BD);
+    				
+    				
+    				con = ConnectionFactory.getConnection(BD);
     				stm = con.prepareStatement(sql);
     				stm.executeUpdate(usarBD);
     				
@@ -1887,7 +2326,12 @@ public class Salvar_SQL {
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			
+			
+			con = ConnectionFactory.getConnection(BD);
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			
@@ -1934,23 +2378,28 @@ public class Salvar_SQL {
 
 
 		
-		String sql="insert into Escolas values(?,?,?,?,?,?,?,?,?,?)";
+		String sql="insert into escolas values(?,?,?,?,?,?,?,?,?,?,?)";
 		
-		String usarBD="use wg";
-		int codigo;
+		String usarBD="use webgenius";
+		int codigo =0;
 		
 		
 		 Connection con=null;
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD("webgenius");
+			
+			
+			
+			con = ConnectionFactory.getConnection("webgenius");
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			
 			
-
-			codigo=cID.recuperarCodigo("wg", "Escolas", "id");
+			codigo =cID.recuperarCodigo("webgenius", "escolas", "id");
 			++codigo;
 			
 			
@@ -1966,9 +2415,17 @@ public class Salvar_SQL {
 			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
 			
 			stm.setString(7, sdf.format(dataActual));  
+			
 			stm.setString(8, "");
+			
+			
 			stm.setString(9, "");
 			stm.setInt(10, 0);
+			if(codigo < 10) {
+				stm.setString(11, "webgenius0"+codigo);
+			}else {
+				stm.setString(11, "webgenius"+codigo);
+			}
 			
 			
 			
@@ -2011,14 +2468,19 @@ public class Salvar_SQL {
 		
 		
 		
-		String usarBD="use wg";
+		String usarBD="use webgenius";
 		String nome_PCA=pca.getNome();
 		
 		 Connection con=null;
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD("webgenius");
+			
+			
+			con = ConnectionFactory.getConnection("webgenius");
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			
@@ -2081,7 +2543,7 @@ public  boolean inserirCurso(String BD,Curso curso){
 	   
 	 
 		
-		String sql="insert into cursos values(?,?,?,?,?,?,?,?)";
+		String sql="insert into cursos values(?,?,?,?,?,?,?,?,?)";
 		int codigo=0;
 		int cursosQuant=0;
 		String crs=curso.getNome();
@@ -2130,7 +2592,12 @@ public  boolean inserirCurso(String BD,Curso curso){
 				 PreparedStatement stm=null ;
 				
 				try{
-					con = ConnectionFactory.getConnection();
+					
+					Conexao conexao = new Conexao();
+					conexao.setBD(BD);
+					
+					
+					con = ConnectionFactory.getConnection(BD);
 					stm = con.prepareStatement(sql);
 					stm.executeUpdate(usarBD);
 					
@@ -2147,6 +2614,7 @@ public  boolean inserirCurso(String BD,Curso curso){
 					stm.setString(6, "");
 					stm.setString(7, "");
 					stm.setString(8, "");
+					stm.setString(9, "S");
 					
 					
 					stm.executeUpdate();
@@ -2201,7 +2669,7 @@ public  boolean inserirCurso(String BD,Curso curso){
 					
 					
 					tbc.criarTabelaDinamica(BD, "Cursos_Disciplinas", cursos, cursosQuant);
-					tbc.criarTabelaDinamica(BD, "Cursos_Turmas", cursos, cursosQuant);
+					tbc.criarTabelaDinamica(BD, "CursosTurmas", cursos, cursosQuant);
 					//tbc.criarTabelaDinamica(BD, "Cursos_Profs_E_Coord", cursos, cursosQuant);
 								
 					tbc=null;
@@ -2244,11 +2712,12 @@ public void inserirInfoEscola(String BD,
 
 			 
 
+			 Conexao conexao = new Conexao();
+				conexao.setBD(BD);
 
 
 
-
-			 con = ConnectionFactory.getConnection();
+			 con = ConnectionFactory.getConnection(BD);
 			 stm = con.prepareStatement(sql);
 			 stm.executeUpdate(usarBD);
 
@@ -2309,6 +2778,9 @@ public boolean inserir_NaTabela_InfoEscola2_DatasProvas(String BD,
 	boolean estaCheio=false;
 	
 	
+	Conexao conexao = new Conexao();
+	conexao.setBD(BD);
+	
 	
 	 Connection con=null;
 	 PreparedStatement stm=null ;
@@ -2336,7 +2808,7 @@ public boolean inserir_NaTabela_InfoEscola2_DatasProvas(String BD,
 							 ",Datas="+datas.get(i)+" where id="+1;
 				 
 				     
-					 con = ConnectionFactory.getConnection();
+					 con = ConnectionFactory.getConnection(BD);
 					 stm = con.prepareStatement(sql);
 					 stm.executeUpdate(usarBD);
 
@@ -2350,7 +2822,7 @@ public boolean inserir_NaTabela_InfoEscola2_DatasProvas(String BD,
 				 }else {
 					 
 					 
-					 con = ConnectionFactory.getConnection();
+					 con = ConnectionFactory.getConnection(BD);
 					 stm = con.prepareStatement(sql);
 					 stm.executeUpdate(usarBD);
 
@@ -2534,7 +3006,7 @@ public void inserirNiveis_Ou_Estagio(String BD
 		    	 try{
 
 					 
-		    	    con = ConnectionFactory.getConnection();
+		    	    con = ConnectionFactory.getConnection(BD);
 
 		 			stm = con.prepareStatement(sql);
 		 			stm.executeUpdate(usarBD);
@@ -2572,7 +3044,7 @@ public void inserirNiveis_Ou_Estagio(String BD
 
 
 
-					 con = ConnectionFactory.getConnection();
+					 con = ConnectionFactory.getConnection(BD);
 					 stm = con.prepareStatement(sql);
 					 stm.executeUpdate(usarBD);
 
@@ -2650,7 +3122,7 @@ public void inserir_Ensino(String BD
 		    	 try{
 
 					 
-		    	    con = ConnectionFactory.getConnection();
+		    	    con = ConnectionFactory.getConnection(BD);
 
 		 			stm = con.prepareStatement(sql);
 		 			stm.executeUpdate(usarBD);
@@ -2787,15 +3259,15 @@ public void inserir_Ensino(String BD
 			// Aqui Está a se recuperar os Nomes De Todas Turmas emm cada curso
 			 for (String c : cursost) {
 		          
-				 ArrayList<String> turmas = p.pesquisarTudoEmString(BD, "Cursos_Turmas", c);
+				 ArrayList<String> turmas = p.pesquisarTudoEmString(BD, "CursosTurmas", c);
                  todas_Turmas.add(turmas);
 			}
 			 
 			// Aqui Está a se Eliminar A Tabela curso_Disciplinas
-			 eliminar.EliminarQualTabela(BD, "Cursos_turmas",false);
+			 eliminar.EliminarQualTabela(BD, "CursosTurmas",false);
 			 
 			// Aqui Está a ser criada a nova tabela  curso_Turmas
-			 tbc.criarTabelaDinamica(BD, "Cursos_Turmas", cursos, cursosQuant);
+			 tbc.criarTabelaDinamica(BD, "CursosTurmas", cursos, cursosQuant);
 		 
 			 
                   
@@ -2994,8 +3466,8 @@ public void inserir_Ensino(String BD
 					if(c.equalsIgnoreCase(mes)) {
 						
 						System.out.println("É IGUAL");
-						  ta.actualizarColuna_QualquerLinha_Int(BD, tabela+"_Financa", 
-							mes,preco, "", codigo);
+						 // ta.actualizarColuna_QualquerLinha_Int(BD, tabela+"_Financa", 
+							//mes,preco, "", codigo);
 						
 						
 						break sair;
@@ -3003,9 +3475,9 @@ public void inserir_Ensino(String BD
 						
 						System.out.println("É DIFERENTE");
 						
-						   ta.actualizarColuna_QualquerLinha_Int(BD, tabela+"_Financa", 
-				    		   c, 
-				    		   1, "", codigo);
+						  // ta.actualizarColuna_QualquerLinha_Int(BD, tabela+"_Financa", 
+				    		//   c, 
+				    		 //  1, "", codigo);
 					
 					
 					}
@@ -3322,7 +3794,7 @@ public void inserir_Ensino(String BD
 								
 							
 					  }
-						inserir_Varias_Discip_Turma_Prof_Ou_Coord(BD, "cursos_disciplinas",
+						inserir_Varias_Discip_Turma_Prof_Ou_Coord(BD, "Cursos_Disciplinas",
 								 conteudos2, curso,nivel);
 						retorno=true;
 					}
@@ -3388,7 +3860,7 @@ public void inserir_Ensino(String BD
 
 			public void inserir_Turma(String BD,String turma,String curso) {
 
-				inserir_Uma_Discip_Turma_Prof_Ou_Coord(BD, "cursos_turmas", turma, curso);
+				inserir_Uma_Discip_Turma_Prof_Ou_Coord(BD, "CursosTurmas", turma, curso);
 			}
 			
 			
@@ -3440,7 +3912,7 @@ public void inserir_Ensino(String BD
 			    // Defenindo o Nº de Funcionarios Da Instituição
 			     ta.actualizarColuna_Na_PrimeiraLinha(BD, "infoescola", "qfunc", quantAlunos);
 			
-			     inserir_DAdosPessoais(BD, "Professor", null,prof);
+			     inserir_DadosPessoais(BD, "Professor", null,prof);
       			
 			     Date d= (java.util.Date)(prof.getContrato());
 			     SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
@@ -3499,7 +3971,7 @@ public void inserir_Ensino(String BD
 				     inserir_CoordenadorDoCurso(BD, curso, bi);
 				     
 				     
-				     inserir_DAdosPessoais(BD, cargo, null,integrante);
+				     inserir_DadosPessoais(BD, cargo, null,integrante);
 	      			 inserir_DAdosAcesso(BD, cargo, cargo, bi,contrato,false);
 	      			 inserir_DAdosFinanceiros(BD, cargo);
 	      			 
@@ -3514,31 +3986,54 @@ public void inserir_Ensino(String BD
 					Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
 					
 					
+					 if((cargo.equalsIgnoreCase("Limpeza"))||
+							 (cargo.equalsIgnoreCase("Seguranca"))|| 
+							 (cargo.equalsIgnoreCase("Cozinheira"))){
+						 
+						 
+						//inserir_Uma_Discip_Turma_Prof_Ou_Coord(BD, "cursos_profs_e_coord;", professor, curso);
+							
+							int quantAlunos=p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+							++quantAlunos;
+							   
+						    // Defenindo o Nº de Funcionarios Da Instituição
+						     
+						
+						    
+						     inserir_DadosPessoais(BD, cargo, null,integrante);
+			      			 inserir_DAdosFinanceiros(BD, cargo);
+			      			ta.actualizarColuna_Na_PrimeiraLinha(BD, "infoescola", "qfunc", quantAlunos);
+						 
+					 }else {
+						 
+						 
+						//inserir_Uma_Discip_Turma_Prof_Ou_Coord(BD, "cursos_profs_e_coord;", professor, curso);
+							
+							int quantAlunos=p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+							++quantAlunos;
+							   
+						    // Defenindo o Nº de Funcionarios Da Instituição
+						     ta.actualizarColuna_Na_PrimeiraLinha(BD, "infoescola", "qfunc", quantAlunos);
+						
+						     Date d= (java.util.Date)(integrante.getContrato());
+						     SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+						     String contrato =sdf.format(d); 
+						    
+						     inserir_DadosPessoais(BD, cargo, null,integrante);
+			      			 inserir_DAdosAcesso(BD, cargo, cargo, bi,contrato,false);
+			      			 inserir_DAdosFinanceiros(BD, cargo);
+			      			 
+			      			 
+			      			 if(cargo.equalsIgnoreCase("tesouraria")||
+			      					 (cargo.equalsIgnoreCase("secretaria"))) {
+			      				 
+			      				inserir_Tesoureiro(BD, bi);
+			      			 }
+						 
+					 }
 					
 					
 					
-					//inserir_Uma_Discip_Turma_Prof_Ou_Coord(BD, "cursos_profs_e_coord;", professor, curso);
-					
-					int quantAlunos=p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
-					++quantAlunos;
-					   
-				    // Defenindo o Nº de Funcionarios Da Instituição
-				     ta.actualizarColuna_Na_PrimeiraLinha(BD, "infoescola", "qfunc", quantAlunos);
-				
-				     Date d= (java.util.Date)(integrante.getContrato());
-				     SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-				     String contrato =sdf.format(d); 
-				    
-				     inserir_DAdosPessoais(BD, cargo, null,integrante);
-	      			 inserir_DAdosAcesso(BD, cargo, cargo, bi,contrato,false);
-	      			 inserir_DAdosFinanceiros(BD, cargo);
-	      			 
-	      			 
-	      			 if(cargo.equalsIgnoreCase("tesouraria")||
-	      					 (cargo.equalsIgnoreCase("secretaria"))) {
-	      				 
-	      				inserir_Tesoureiro(BD, bi);
-	      			 }
 	      			funInserido=true;
 	      			 
 					
@@ -3674,7 +4169,7 @@ public void inserir_Ensino(String BD
 							   
 							   
 							   AcessoInteligente integrante = new AcessoInteligente();
-							 //  inserir_DAdosPessoais(BD, funcionario, integrante);
+							 //  inserir_DadosPessoais(BD, funcionario, integrante);
 							   
 						   }else if(contador==2) {
 							   
@@ -3706,7 +4201,7 @@ public void inserir_Ensino(String BD
 								   
 								   
 								//   AcessoInteligente integrante = p.pesquisar_Dados_Pessoais_Dum_Intefrante(BD, "Professor_DadosPessoais", bi);
-								  // inserir_DAdosPessoais(BD, funcionario, integrante);
+								  // inserir_DadosPessoais(BD, funcionario, integrante);
 								   
 							   }else if(contador==2) {
 								   
@@ -3745,7 +4240,7 @@ public void inserir_Ensino(String BD
 								   if(contador==1) {
 									   
 									   AcessoInteligente integrante = new AcessoInteligente();
-									//   inserir_DAdosPessoais(BD, funcionario, integrante);
+									//   inserir_DadosPessoais(BD, funcionario, integrante);
 									   
 								   }else if(contador==2) {
 									   
@@ -3909,11 +4404,6 @@ public void inserir_Ensino(String BD
 			}
 			
 			
-			public String retornarBaseDeDados() {
-				
-				return this.BD;
-			}
-			
 			private void inserir_Nome_Do_Documento(String BD,String documento) {
 
 				Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
@@ -4049,7 +4539,7 @@ public void inserir_Ensino(String BD
 					int mes=0;
 					
 					for(String m: mesesPagos ) {
-					 mes =  p.pesquisarUmConteudo_Numa_Linha_Int(BD, turma+"_financa", m, "id", "", idAluno);
+					 mes =  p.pesquisarUmConteudo_Numa_Linha_Int(BD, turma+"_Financa", m, "id", "", idAluno);
 					
 					  if(mes>0) {
 						  todosMeses.add(m);
@@ -4111,7 +4601,7 @@ public void inserir_Ensino(String BD
 						
 						
 						for(String m: mesesPagos ) {
-						 mes =  p.pesquisarUmConteudo_Numa_Linha_Int(BD, turma+"_financa", m, "id", "", idAluno);
+						 mes =  p.pesquisarUmConteudo_Numa_Linha_Int(BD, turma+"_Financa", m, "id", "", idAluno);
 						
 						  if(mes==0) {
 							  todosMeses.add(m);
@@ -4215,53 +4705,7 @@ public void inserir_Ensino(String BD
 			}
 			
 			
-			public ArrayList<String> tesouraria_MesesAnteriores_Com_Multa(ArrayList<String> 
-			mesesNPagos, int mesesAPagar) {
-				
-				    Date dataActual= new Date();
-				    SimpleDateFormat sdf= new SimpleDateFormat("dd/MM/yyyy");
-				    String[] data=sdf.format(dataActual).split("/");
-				    
-				    Pesquisar_SQL p = new Pesquisar_SQL();
-				    int tempoSemMulta= p.pesquisarUmConteudo_Numa_Linha_Int(BD, "Escola_Financa", "TempoPropina", "id", "", 1);
-				    
-				    
-				    int mesActual=Integer.parseInt(data[1]);
-				    ArrayList<String> mesesComMulta= new ArrayList<>();
-				  
 			
-
-				    int contador=0;
-				    sair:
-				    for (String mes : mesesNPagos) {
-						
-				    	++contador;
-				    	
-				    	
-				    	if(contador<=mesesAPagar) {
-				    		
-				    		if(contador<mesActual) {
-					    		
-					    		mesesComMulta.add(mes);
-					    	}else if(contador==mesActual) {
-					    		
-					    		if(Integer.parseInt(data[0])>tempoSemMulta) {
-						    		
-					    			mesesComMulta.add(mes);
-						    	}
-					    	}
-				    		
-				    		if(contador==mesesAPagar) {
-				    			
-				    			break sair;
-				    		}
-				    	}
-				    	
-					}
-				    
-				    
-				return mesesComMulta;
-			}
 			
 			
 			public int  tesouraria_Pagando_mesesAnteriores_Com_Multa(String BD,
@@ -4322,9 +4766,15 @@ public void inserir_Ensino(String BD
 				}
 				
 				  
-				String tesoureiro= p.pesquisarUmConteudo_Numa_Linha_String(BD, "tesouraria_dadospessoais", "nomes", "id", "", idFunc);
+				String tesoureiro= p.pesquisarUmConteudo_Numa_Linha_String(BD, "Tesouraria_DadosPessoais", "nomes", "id", "", idFunc);
 			    int tempoSemMulta= p.pesquisarUmConteudo_Numa_Linha_Int(BD, "Escola_Financa", "TempoPropina", "id", "", 1);
-			    int multa= p.pesquisarTudoEmInt(BD, "adminfinanca", "multa").get(0);
+			    ArrayList<Integer> multas = p.pesquisarTudoEmInt(BD, "adminfinanca", "multa");
+			    
+			    int multa=0;
+			    if(multas.size() > 0) {
+			    	
+			    	multa= multas.get(0);
+			    }
 			    int rendaAdmin= 0;
 			    ArrayList<Integer> todasRendas = p.pesquisarTudoEmInt(BD, "adminfinanca", "renda");
 			    if(todasRendas.size()>0) {
@@ -4388,7 +4838,7 @@ public void inserir_Ensino(String BD
 					int mes=0;
 					for(String c : mesesNPagos) {
 						
-						 mes= p.pesquisarUmConteudo_Numa_Linha_Int(BD, turma+"_financa", c, "id", "", idAluno);
+						 mes= p.pesquisarUmConteudo_Numa_Linha_Int(BD, turma+"_Financa", c, "id", "", idAluno);
 						 if(mes==0) {
 							 mesesQFaltamPagar.add(c);
 						 }
@@ -4401,13 +4851,13 @@ public void inserir_Ensino(String BD
 						sair:
 						for(int i=0;i<pagarQMeses;i++) {
 							
-							if(mesesQFaltamPagar.get(i).equalsIgnoreCase(mesesNPagos.get(mesActual))) {
+							if(mesesQFaltamPagar.get(i).equalsIgnoreCase(mesesNPagos.get(mesActual-1))) {
 								
 								// Aqui está a dizer que a Escola não usa Multas
 								if(multa==0) {
 									System.out.println("A Escola Não usa Multas");
 									System.out.println("Pagando o mes Actual sem Multas");
-									ta.actualizarColuna_QualquerLinha_Int(BD, turma+"_financa", mesesQFaltamPagar.get(i), precoDoCurso, "", idAluno);
+									ta.actualizarColuna_QualquerLinha_Int(BD, turma+"_Financa", mesesQFaltamPagar.get(i), precoDoCurso, "", idAluno);
 								
 									mesP.add(mesesQFaltamPagar.get(i));
 									valorP.add(precoDoCurso);
@@ -4422,7 +4872,7 @@ public void inserir_Ensino(String BD
                                     if(diaActual> tempoSemMulta) {
                                     	
                                     	System.out.println("Pagando o mes Actual com Multas");
-								        ta.actualizarColuna_QualquerLinha_Int(BD, turma+"_financa", mesesQFaltamPagar.get(i), precoDoCurso+multa, "", idAluno);
+								        ta.actualizarColuna_QualquerLinha_Int(BD, turma+"_Financa", mesesQFaltamPagar.get(i), precoDoCurso+multa, "", idAluno);
 								        rendaAdmin=rendaAdmin+(precoDoCurso+multa);
 								        ta.actualizarColuna_Qualquer_Linha(BD, "adminfinanca", "renda", rendaAdmin, "", "bi_admin", bi_admin);
 										
@@ -4431,7 +4881,7 @@ public void inserir_Ensino(String BD
                                     }else {
                                     	
                                     	System.out.println("Pagando o mes Actual sem Multas");
-                                    	ta.actualizarColuna_QualquerLinha_Int(BD, turma+"_financa", mesesQFaltamPagar.get(i), precoDoCurso, "", idAluno);
+                                    	ta.actualizarColuna_QualquerLinha_Int(BD, turma+"_Financa", mesesQFaltamPagar.get(i), precoDoCurso, "", idAluno);
                                     	rendaAdmin=rendaAdmin+precoDoCurso;
                                     	ta.actualizarColuna_Qualquer_Linha(BD, "adminfinanca", "renda", rendaAdmin, "", "bi_admin", bi_admin);
                         				
@@ -4447,7 +4897,7 @@ public void inserir_Ensino(String BD
 								if(multa==0) {
 									System.out.println("A Escola Não usa Multas");
 									System.out.println("Pagando o mes Actual sem Multas");
-									ta.actualizarColuna_QualquerLinha_Int(BD, turma+"_financa", mesesQFaltamPagar.get(i), precoDoCurso, "", idAluno);
+									ta.actualizarColuna_QualquerLinha_Int(BD, turma+"_Financa", mesesQFaltamPagar.get(i), precoDoCurso, "", idAluno);
 								
 									rendaAdmin=rendaAdmin+precoDoCurso;
 									ta.actualizarColuna_Qualquer_Linha(BD, "adminfinanca", "renda", rendaAdmin, "", "bi_admin", bi_admin);
@@ -4470,7 +4920,7 @@ public void inserir_Ensino(String BD
 									if(comparacaoMes<mesActual) {
 										System.out.println("Pagando o mes Antecedente com Multas");
 										
-										ta.actualizarColuna_QualquerLinha_Int(BD, turma+"_financa", mesesQFaltamPagar.get(i), precoDoCurso+multa, "", idAluno);
+										ta.actualizarColuna_QualquerLinha_Int(BD, turma+"_Financa", mesesQFaltamPagar.get(i), precoDoCurso+multa, "", idAluno);
 										
 										rendaAdmin=rendaAdmin+(precoDoCurso+multa);
 										ta.actualizarColuna_Qualquer_Linha(BD, "adminfinanca", "renda", rendaAdmin, "", "bi_admin", bi_admin);
@@ -4482,7 +4932,7 @@ public void inserir_Ensino(String BD
 										
 										System.out.println("Pagando o mes A seguir sem Multas");
 										
-										ta.actualizarColuna_QualquerLinha_Int(BD, turma+"_financa", mesesQFaltamPagar.get(i), precoDoCurso, "", idAluno);
+										ta.actualizarColuna_QualquerLinha_Int(BD, turma+"_Financa", mesesQFaltamPagar.get(i), precoDoCurso, "", idAluno);
 										rendaAdmin=rendaAdmin+precoDoCurso;
 										ta.actualizarColuna_Qualquer_Linha(BD, "adminfinanca", "renda", rendaAdmin, "", "bi_admin", bi_admin);
 										
@@ -5183,7 +5633,7 @@ public int valorDoRecurso(String BD){
 		  sair:
 			  for (String turma : turmasDoCurso) {
 				
-				  id= p.pesquisarUmConteudo_Numa_Linha_Int(BD, turma+"_DadosPessoais", "id", "bi", biAluno, 0);
+				  id= p.pesquisarUmConteudo_Numa_Linha_Int(BD, turma+"_Avaliacao", "id", "bi", biAluno, 0);
 			      
 				  if(id!=0) {
 					  
@@ -5212,7 +5662,7 @@ public int valorDoRecurso(String BD){
                             
 						    EliminarLinha_SQL e = new EliminarLinha_SQL();
 						    
-						    Aluno aluno = p.pesquisar_Dados_Pessoais_Dum_Aluno(BD, turma+"_DadosPessoais", biAluno);
+						    Aluno aluno = p.pesquisar_Dados_Pessoais_Dum_Aluno(BD, turma+"_Avaliacao", biAluno);
 							aluno.setNivel(nivel);
 							aluno.setTurno(turno);
 							aluno.setCurso(curso);
@@ -5642,12 +6092,12 @@ public boolean pode_Lancar_Nota_Ou_Prova(String BD, String turma,String descipli
 	 
 	 Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
 	 Pesquisar_SQL p = new  Pesquisar_SQL();
-	 String situacao1="";
-	 String situacao2="";
 	 
-	 ArrayList<String> desciplinas =  p.pesquisarTudoEmString(BD, "cursos_disciplinas", curso);
-	 ArrayList<String> desciplinasF = new ArrayList<>();
 	 
+	 ArrayList<String> desciplinas =  p.pesquisarTudoEmString(BD, "Cursos_Disciplinas", curso);
+	 
+	 
+	 /*
 	 String sexo = p.pesquisarUmConteudo_Numa_Linha_String(BD, turma+"_DadosPessoais", "sexo", "id", "", id);
 	 if(sexo.equalsIgnoreCase("M")) {
 		 situacao1="Aprovado";
@@ -5658,7 +6108,7 @@ public boolean pode_Lancar_Nota_Ou_Prova(String BD, String turma,String descipli
 	 }
 	 
 	 
-	 
+	 */
 	 
 	 
 	 boolean chave=false;
@@ -5698,9 +6148,9 @@ public boolean pode_Lancar_Nota_Ou_Prova(String BD, String turma,String descipli
 		 if(chave){
 			 
 			 if(media<9) {
-				 ta.actualizarColuna_QualquerLinha_String(BD, turma+"_Media", "Situacao", situacao2, id);
+				 ta.actualizarColuna_QualquerLinha_String(BD, turma+"_Media", "Situacao", "Nao Apto", id);
 			 }else {
-				 ta.actualizarColuna_QualquerLinha_String(BD, turma+"_Media", "Situacao", situacao1, id);
+				 ta.actualizarColuna_QualquerLinha_String(BD, turma+"_Media", "Situacao", "Apto", id);
 			 }
 		 }else {
 			 
@@ -5709,7 +6159,7 @@ public boolean pode_Lancar_Nota_Ou_Prova(String BD, String turma,String descipli
 			   System.out.println(a[1]);
 			   
 			   if(a[1].endsWith("10")) {
-				   ta.actualizarColuna_QualquerLinha_String(BD, turma+"_Media", "Situacao", situacao1, id);
+				   ta.actualizarColuna_QualquerLinha_String(BD, turma+"_Media", "Situacao", "Apto", id);
 			   }else {
 				   
 				   //Buscar a Media no Servido do Anto Anterior
@@ -5717,9 +6167,9 @@ public boolean pode_Lancar_Nota_Ou_Prova(String BD, String turma,String descipli
 				   //Maior que 9 está aprovado senao está Reprovado 
 				   
 				   if(media<9) {
-						 ta.actualizarColuna_QualquerLinha_String(BD, turma+"_Media", "Situacao", situacao2, id);
+						 ta.actualizarColuna_QualquerLinha_String(BD, turma+"_Media", "Situacao", "Nao Apto", id);
 					 }else {
-						 ta.actualizarColuna_QualquerLinha_String(BD, turma+"_Media", "Situacao", situacao1, id);
+						 ta.actualizarColuna_QualquerLinha_String(BD, turma+"_Media", "Situacao", "Apto", id);
 					 }
 				   
 			   }
@@ -5853,7 +6303,7 @@ public boolean pode_Lancar_Nota_Ou_Prova(String BD, String turma,String descipli
  public int sistema_OndeParou_O_Cadastro(String bi) {
 	 
 	 Pesquisar_SQL p = new Pesquisar_SQL();
-	 int paragem=p.pesquisarUmConteudo_Numa_Linha_Int("wg", "Escolas", "Onde_Parou", "bi", bi, 0);
+	 int paragem=p.pesquisarUmConteudo_Numa_Linha_Int("webgenius", "escolas", "Onde_Parou", "bi", bi, 0);
 	 
       return paragem;
  }
@@ -5861,21 +6311,21 @@ public boolean pode_Lancar_Nota_Ou_Prova(String BD, String turma,String descipli
  public void sistema_Actualizar_OndeParou_O_Cadastro(String bi,int faseActual) {
 	 
 	 Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
-	 ta.actualizarColuna_Qualquer_Linha("wg", "escolas", "Onde_Parou", faseActual, "", "bi", bi);
+	 ta.actualizarColuna_Qualquer_Linha("webgenius", "escolas", "Onde_Parou", faseActual, "", "bi", bi);
 	 
  }
  
 public void sistema_Cadastrado_Com_Sucesso(String bi) {
 	 
 	 Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
-	 ta.actualizarColuna_Qualquer_Linha("wg", "Escolas", "sisCadatrado", 0, "S", "bi", bi);
+	 ta.actualizarColuna_Qualquer_Linha("webgenius", "escolas", "sisCadatrado", 0, "S", "bi", bi);
 	 
  }
 
 public boolean sistema_Esta_Cadastro(String bi) {
 	 
 	 Pesquisar_SQL p = new Pesquisar_SQL();
-	 String paragem=p.pesquisarUmConteudo_Numa_Linha_String("wg", "Escolas", "sisCadatrado", "bi", bi, 0);
+	 String paragem=p.pesquisarUmConteudo_Numa_Linha_String("webgenius", "escolas", "sisCadatrado", "bi", bi, 0);
 	 
 	 boolean retorno;
 	 if(paragem.equalsIgnoreCase("")) {
@@ -5920,23 +6370,23 @@ public void TempoDePag_Da_Propina_Sem_Multa(String BD,int dias_Sem_Multa) {
     		  
     		 
     		
-    		   funcionarios.add("Professor_financa");
-    		   funcionarios.add("Secretaria_financa");
-    		   funcionarios.add("Tesouraria_financa");
-    		   funcionarios.add("Coord_financa");
-    		   funcionarios.add("DG_financa");
-    		   funcionarios.add("DA_financa");
-    		   funcionarios.add("DP_financa");
+    		   funcionarios.add("Professor_Financa");
+    		   funcionarios.add("Secretaria_Financa");
+    		   funcionarios.add("Tesouraria_Financa");
+    		   funcionarios.add("Coord_Financa");
+    		   funcionarios.add("DG_Financa");
+    		   funcionarios.add("DA_Financa");
+    		   funcionarios.add("DP_Financa");
     		   
     		   
     		   Controle_ID_SQL cID = new Controle_ID_SQL();
-    	       int idProfs = cID.recuperarCodigo(BD, "Professor_financa", "id");
-    	       int idSec = cID.recuperarCodigo(BD, "Secretaria_financa", "id");
-    	       int idTesou = cID.recuperarCodigo(BD, "Tesouraria_financa", "id");
-    	       int idCoord = cID.recuperarCodigo(BD, "Coord_financa", "id");
-    	       int idDG = cID.recuperarCodigo(BD, "DG_financa", "id");
-    	       int idDA = cID.recuperarCodigo(BD, "DA_financa", "id");
-    	       int idDP = cID.recuperarCodigo(BD, "DP_financa", "id");
+    	       int idProfs = cID.recuperarCodigo(BD, "Professor_Financa", "id");
+    	       int idSec = cID.recuperarCodigo(BD, "Secretaria_Financa", "id");
+    	       int idTesou = cID.recuperarCodigo(BD, "Tesouraria_Financa", "id");
+    	       int idCoord = cID.recuperarCodigo(BD, "Coord_Financa", "id");
+    	       int idDG = cID.recuperarCodigo(BD, "DG_Financa", "id");
+    	       int idDA = cID.recuperarCodigo(BD, "DA_Financa", "id");
+    	       int idDP = cID.recuperarCodigo(BD, "DP_Financa", "id");
     	    
     	       
     	       ArrayList<Integer> ids = new ArrayList<>();
@@ -6001,23 +6451,23 @@ public void TempoDePag_Da_Propina_Sem_Multa(String BD,int dias_Sem_Multa) {
     		  
     		 
     		
-    		   funcionarios.add("Professor_financa");
-    		   funcionarios.add("Secretaria_financa");
-    		   funcionarios.add("Tesouraria_financa");
-    		   funcionarios.add("Coord_financa");
-    		   funcionarios.add("DG_financa");
-    		   funcionarios.add("DA_financa");
-    		   funcionarios.add("DP_financa");
+    		   funcionarios.add("Professor_Financa");
+    		   funcionarios.add("Secretaria_Financa");
+    		   funcionarios.add("Tesouraria_Financa");
+    		   funcionarios.add("Coord_Financa");
+    		   funcionarios.add("DG_Financa");
+    		   funcionarios.add("DA_Financa");
+    		   funcionarios.add("DP_Financa");
     		   
     		   
     		   Controle_ID_SQL cID = new Controle_ID_SQL();
-    	       int idProfs = cID.recuperarCodigo(BD, "Professor_financa", "id");
-    	       int idSec = cID.recuperarCodigo(BD, "Secretaria_financa", "id");
-    	       int idTesou = cID.recuperarCodigo(BD, "Tesouraria_financa", "id");
-    	       int idCoord = cID.recuperarCodigo(BD, "Coord_financa", "id");
-    	       int idDG = cID.recuperarCodigo(BD, "DG_financa", "id");
-    	       int idDA = cID.recuperarCodigo(BD, "DA_financa", "id");
-    	       int idDP = cID.recuperarCodigo(BD, "DP_financa", "id");
+    	       int idProfs = cID.recuperarCodigo(BD, "Professor_Financa", "id");
+    	       int idSec = cID.recuperarCodigo(BD, "Secretaria_Financa", "id");
+    	       int idTesou = cID.recuperarCodigo(BD, "Tesouraria_Financa", "id");
+    	       int idCoord = cID.recuperarCodigo(BD, "Coord_Financa", "id");
+    	       int idDG = cID.recuperarCodigo(BD, "DG_Financa", "id");
+    	       int idDA = cID.recuperarCodigo(BD, "DA_Financa", "id");
+    	       int idDP = cID.recuperarCodigo(BD, "DP_Financa", "id");
     	    
     	       
     	       ArrayList<Integer> ids = new ArrayList<>();
@@ -6043,5 +6493,36 @@ public void TempoDePag_Da_Propina_Sem_Multa(String BD,int dias_Sem_Multa) {
     	 
      }
  
-		
+ public static void main(String[] args) {
+	 
+	 Salvar_SQL s = new Salvar_SQL();
+	 
+	 ArrayList<String> cursos= new ArrayList<>();
+	 cursos.add("Medicina");
+	 cursos.add("Enfermagvemh");
+	 cursos.add("Farma");
+	 
+	 ArrayList<String> desciplinas= new ArrayList<>();
+	 desciplinas.add("10 Infornati");
+	 desciplinas.add("11 Maatemhat");
+	 desciplinas.add("12 Fai");
+	 
+	 ArrayList<String> niveis= new ArrayList<>();
+	 niveis.add("10");
+	 niveis.add("11");
+	 niveis.add("12");
+	 
+	 ArrayList<String> turmas= new ArrayList<>();
+	 turmas.add("1_TurmaMEnf10");
+	 turmas.add("2_TurmaTMed11");
+	 
+	 ArrayList<String> turnos= new ArrayList<>();
+	 turnos.add("Manha");
+	 turnos.add("Tarde");
+	 turnos.add("Noite");
+	 
+	 
+	 
+	 s.inserir_Disciplinas_Prof2("2_vassovava", cursos, "Euclides", desciplinas, niveis, turmas, 0, "al", turnos);
+ }
 }

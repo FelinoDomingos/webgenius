@@ -1,5 +1,7 @@
 package tecShine.com.model;
 
+import java.util.ArrayList;
+
 public class Curso {
 
 	
@@ -21,8 +23,51 @@ public class Curso {
 	private int preco4;
 	
 	
+	private ArrayList<String> cursos = new ArrayList<>();
+	private ArrayList<String> turnos = new ArrayList<>();
+	private ArrayList<String> niveis = new ArrayList<>();
+	private ArrayList<String> turmas = new ArrayList<>();
+	private ArrayList<String> disciplinas = new ArrayList<>();
+	private boolean maisDados;
 	
 	
+	
+	public boolean isMaisDados() {
+		return maisDados;
+	}
+	public void setMaisDados(boolean maisDados) {
+		this.maisDados = maisDados;
+	}
+	public ArrayList<String> getCursos() {
+		return cursos;
+	}
+	public void setCursos(ArrayList<String> cursos) {
+		this.cursos = cursos;
+	}
+	public ArrayList<String> getTurnos() {
+		return turnos;
+	}
+	public void setTurnos(ArrayList<String> turnos) {
+		this.turnos = turnos;
+	}
+	public ArrayList<String> getNiveis() {
+		return niveis;
+	}
+	public void setNiveis(ArrayList<String> niveis) {
+		this.niveis = niveis;
+	}
+	public ArrayList<String> getTurmas() {
+		return turmas;
+	}
+	public void setTurmas(ArrayList<String> turmas) {
+		this.turmas = turmas;
+	}
+	public ArrayList<String> getDisciplinas() {
+		return disciplinas;
+	}
+	public void setDisciplinas(ArrayList<String> disciplinas) {
+		this.disciplinas = disciplinas;
+	}
 	public int getPreco1() {
 		return preco1;
 	}

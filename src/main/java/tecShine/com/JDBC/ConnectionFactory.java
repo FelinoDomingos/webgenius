@@ -1,7 +1,5 @@
 package tecShine.com.JDBC;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -9,6 +7,7 @@ import java.sql.SQLException;
 import org.springframework.stereotype.Repository;
 
 import tecShine.com.controller.TechShineController;
+import tecShine.com.model.Conexao;
 
 
 
@@ -40,7 +39,7 @@ public class ConnectionFactory {
 	}
 	
 	/*
-public static Connection getConnection(){
+public static Connection getConnection(String BD){
 		
 		
 		TechShineController tc = new TechShineController();
@@ -73,6 +72,57 @@ public static Connection getConnection(){
 		return con;
 	}
 */
+	
+	
+public synchronized static Connection getConnection(String BD){
+		
+		
+		TechShineController tc = new TechShineController();
+		Connection con=null;
+		  		
+		try {
+			
+			Conexao conexao = new Conexao();
+			System.out.println("CONEXAO: "+conexao.getBD());
+			System.out.println("BASE DE DADOS: "+BD);
+			
+			
+			synchronized(ConnectionFactory.class) {
+				
+				Class.forName("com.mysql.jdbc.Driver").newInstance();
+				String url = "jdbc:mysql://mysql.webgenius.kinghost.net:3306/"+BD+"?useSSL=false";
+				String user=BD;
+				String password="sammpaioo1L2";
+				
+				
+				System.out.println("============ SQL: "+url+"===========================");
+
+				con =DriverManager.getConnection(url, user, password);
+				
+				
+
+				System.out.println("Conectado");
+			}
+
+			
+
+
+
+		}catch (Exception e) {
+			// TODO: handle exception
+			System.out.println("Erro Ao se Conectar");
+			tc.erroDeConnexao();
+			//e.printStackTrace();
+			
+			
+		}
+		
+		return con;
+	}
+
+   
+	
+	/*
 	public static Connection getConnection() throws URISyntaxException, SQLException {
 	    URI dbUri = new URI(System.getenv("CLEARDB_DATABASE_URL"));
 
@@ -82,7 +132,7 @@ public static Connection getConnection(){
 
 	    return DriverManager.getConnection(dbUrl, username, password);
 	}
-
+  */
 	
 	/*
 	 * 

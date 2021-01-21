@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
+import tecShine.com.model.Conexao;
 import tecShine.com.model.Turma;
 
 
@@ -42,14 +43,19 @@ public  void criarTabelaEscolas_WG (){
 			+ "bi varchar(40) NOT NULL, telefone varchar(20) NOT NULL,data varchar(20),"
 			+ "escola varchar(40),sisCadatrado varchar(40),Onde_Parou int);"
 			;
-	String usarBD="use wg";
+	String usarBD="use webgenius";
 	
 	
 	 Connection con=null;
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD( "webgenius");
+	    
+	    
+		con = ConnectionFactory.getConnection("webgenius");
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -87,10 +93,10 @@ public  void criarTabelaAdmin (String BD,String nomeDaTabela){
 
 	
 		String sql="create table "+nomeDaTabela+"("
-				+ "nome varchar(20),sigla varchar(20),"
-				+ "bi varchar(30),contrato varchar(20),"
-				+ "valor int,usuario varchar(30),acesso1 varchar(30),"
-				+ "acesso2 varchar(30),instituicao varchar(255),"
+				+ "nome varchar(225),sigla varchar(225),"
+				+ "bi varchar(225),contrato varchar(225),"
+				+ "valor int,usuario varchar(200),acesso1 varchar(200),"
+				+ "acesso2 varchar(200),instituicao varchar(255),"
 				+ "logotipo blob);"
 				;
 		String usarBD="use "+BD;
@@ -100,7 +106,12 @@ public  void criarTabelaAdmin (String BD,String nomeDaTabela){
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+		    conexao.setBD(BD);
+		    
+		    
+			con = ConnectionFactory.getConnection(BD);
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			stm.executeUpdate();
@@ -149,7 +160,12 @@ public  void criarTabelaPCA_WG (String BD,String nomeDaTabela){
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
+	    
+	    
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -192,7 +208,12 @@ public  void criarTabelaAdminFinanca (String BD){
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
+	    
+	    
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -243,9 +264,10 @@ public void criarTabelaFuncFinanca (String BD,String cargo){
 		
 			  
 			
+			Conexao conexao = new Conexao();
+		    conexao.setBD(BD);
 			
-			
-			con = ConnectionFactory.getConnection();
+			con = ConnectionFactory.getConnection(BD);
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			stm.executeUpdate();
@@ -289,7 +311,8 @@ public void criarTabela_Cursos(String BD){
 				+ "preco int,coord varchar(80),"
 				+ "trancar varchar(20),"
 				+ "bi varchar(60),"
-				+ "Situacao varchar(60));";
+				+ "Situacao varchar(60),"
+				+ "autorizacao varchar(60));";
 		
 		
 		 Connection con=null;
@@ -298,9 +321,10 @@ public void criarTabela_Cursos(String BD){
 		try {
 		        
 			
+			Conexao conexao = new Conexao();
+		    conexao.setBD(BD);
 			
-			
-			con = ConnectionFactory.getConnection();
+			con = ConnectionFactory.getConnection(BD);
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			stm.executeUpdate();
@@ -364,10 +388,11 @@ public void criarTabelaDinamica(String BD,String tabela, ArrayList<String>cursos
 	
 	try {
 	        
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -416,9 +441,10 @@ public void criarTabela_CursosPorNiveis(String BD){
 	try {
 	        
 		
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -483,9 +509,10 @@ public void criarTabelaDinamica_Avaliiacao_EProva(String BD,String tabela, Array
 	try {
 	        
 		
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -560,9 +587,10 @@ public void criarTabelaDinamica_Turma_Media(String BD,String tabela, ArrayList<S
 	try {
 	        
 		
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -624,9 +652,10 @@ public void criarTabela_Classes_Disciplinas(String BD, ArrayList<String> classes
 	try {
 	        
 		
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -674,9 +703,10 @@ public void criarTabela_InfoEscola(String BD){
 	try {
 	        
 		
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -720,9 +750,10 @@ public void criarTabela_InfoEscola2_DatasProvas(String BD){
 	try {
 	        
 		
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -774,7 +805,7 @@ public void criarTabelaTurma(String BD, Turma turma,String escola){
 	 Pesquisar_SQL p = new Pesquisar_SQL();
 	 
 
-	int contador=t.retornarUmConteudo_Int(BD,"controle_turmas","qTurmas");
+	int contador=t.retornarUmConteudo_Int(BD,"Controle_Turmas","qTurmas");
 	++contador;
 
 	String usarBD="use "+BD;
@@ -828,11 +859,11 @@ public void criarTabelaTurma(String BD, Turma turma,String escola){
 		
 		String sql="create table"+" "+nomeTurma+"("
 				 
-			+ "id int NOT NULL PRIMARY KEY,"+nomeTurma+" varchar(90),Alunos varchar(160),"
-			+ "Disciplinas varchar(45),"
-			+ "Professores varchar(70),"
-			+ "NSala int,NProc int,NDeAlunos int,curso varchar(30),DirecTurma varchar(70),"
-			+ "Instituicao varchar(70));";
+			+ "id int NOT NULL PRIMARY KEY,"+nomeTurma+" varchar(225),Alunos varchar(200),"
+			+ "Disciplinas varchar(150),"
+			+ "Professores varchar(200),"
+			+ "NSala int,NProc int,NDeAlunos int,curso varchar(100),DirecTurma varchar(100),"
+			+ "Instituicao varchar(225));";
 	
 	
 	 Connection con=null;
@@ -840,9 +871,10 @@ public void criarTabelaTurma(String BD, Turma turma,String escola){
 	
 	try {
 	        
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -856,7 +888,7 @@ public void criarTabelaTurma(String BD, Turma turma,String escola){
 		//salvar.ins
 		
 		
-		ArrayList<String> desciplinas= p.pesquisarTudoEmString(BD, "cursos_disciplinas", NomeDoCurso);
+		ArrayList<String> desciplinas= p.pesquisarTudoEmString(BD, "Cursos_Disciplinas", NomeDoCurso);
 		int quantCursos= 0;
 		
 		
@@ -922,7 +954,7 @@ public void criarTabelaTurma(String BD, Turma turma,String escola){
 		// Defenindo o Nome da Turma
 		ta.actualizarColuna_QualquerLinha_String(BD, nomeTurma, nomeTurma, nomeTurma, 1);
 		ta.actualizarColuna_QualquerLinha_Int(BD, nomeTurma, "Instituicao", 0, escola, 1);
-		ta.actualizarColuna_Na_PrimeiraLinha(BD, "controle_turmas", "qTurmas", contador);
+		ta.actualizarColuna_Na_PrimeiraLinha(BD, "Controle_Turmas", "qTurmas", contador);
 		
 		//Esses conteudos Abaixo não tirei porque posso vir a precisa~los!
 		
@@ -978,9 +1010,10 @@ private  void criar_Turma_Dados_Pessoais(String BD,String nomeTurma){
 	try {
 	        
 		
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -1033,9 +1066,10 @@ private  void criar_Func_Dados_Pessoais(String BD,String cargo){
 	try {
 	        
 		
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -1086,10 +1120,11 @@ private  void criar_Turma_Acesso(String BD,String nomeTurma){
 	
 	try {
 	        
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -1139,9 +1174,10 @@ private  void criar_Func_Acesso(String BD,String cargo){
 	try {
 	        
 		
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -1187,10 +1223,11 @@ public  void criar_Tabela_Estagio(String BD){
 	
 	try {
 	        
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -1238,9 +1275,10 @@ public  void criar_Tabela_Agendas(String BD){
 	try {
 	        
 		
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -1291,9 +1329,10 @@ public  void criar_Tabela_materias_Online(String BD){
 	try {
 	        
 		
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -1344,9 +1383,10 @@ private  void criar_Turma_Financa(String BD,String nomeTurma){
 	try {
 	        
 		
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -1391,10 +1431,11 @@ public void criarTabelaFase2(String BD){
 	
 	try {
 	        
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -1441,9 +1482,10 @@ public void criarTabelaFinancaMatEDoc(String BD){
 	try {
 	        
 		
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -1488,7 +1530,12 @@ private void controleTurmas_InserirLinhaVazia(String BD,String tabela
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
+	    
+	    
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		
@@ -1556,9 +1603,10 @@ public void criarTabela_DisciplinasDos_Professores(String BD){
 	try {
 	        
 		
-		 
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -1611,9 +1659,10 @@ public void criarTabela_Escola_Financa(String BD) {
 	try {
 	        
 		
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();
@@ -1651,7 +1700,7 @@ public void criarTabela_Tesoureiro_diario(String BD) {
 
 	
 	
-
+	
 
 	String usarBD="use "+BD;
 	
@@ -1670,9 +1719,10 @@ public void criarTabela_Tesoureiro_diario(String BD) {
 	try {
 	        
 		
+		Conexao conexao = new Conexao();
+	    conexao.setBD(BD);
 		
-		
-		con = ConnectionFactory.getConnection();
+		con = ConnectionFactory.getConnection(BD);
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
 		stm.executeUpdate();

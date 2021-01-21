@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import tecShine.com.model.Conexao;
+
 public class BD_Eliminar_SQL {
 
 	
@@ -19,7 +21,10 @@ public class BD_Eliminar_SQL {
 		String sql="drop database "+BD;
 
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			con = ConnectionFactory.getConnection(BD);
 
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate();

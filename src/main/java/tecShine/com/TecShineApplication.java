@@ -1,18 +1,18 @@
 
 package tecShine.com;
 
-import java.util.ArrayList;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
+import org.springframework.scheduling.annotation.EnableAsync;
 
-import tecShine.com.JDBC.BD_Criar_SQL;
-import tecShine.com.JDBC.Salvar_SQL;
-import tecShine.com.JDBC.Tabelas_Criar_SQL;
-import tecShine.com.model.WG.PCA_WG;
+
 
 @SpringBootApplication 
-public class TecShineApplication{
+@EnableAsync
+public class TecShineApplication extends SpringBootServletInitializer{
 
 	public static void main(String[] args) {
 		SpringApplication.run(TecShineApplication.class, args);
@@ -21,7 +21,11 @@ public class TecShineApplication{
 	  
 	}
  
-	
+	@Override
+	protected SpringApplicationBuilder configure(SpringApplicationBuilder builder) {
+		// TODO Auto-generated method stub
+		return builder.sources(TecShineApplication.class);
+	}
 
 }
                                              

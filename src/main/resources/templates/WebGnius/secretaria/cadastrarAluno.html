@@ -150,7 +150,7 @@
   <!-- Main Sidebar Container -->
   <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
-    <a href="index3.html" class="brand-link">
+    <a href="#" class="brand-link">
       <img src="dist/img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3"
            style="opacity: .8">
       <span class="brand-text font-weight-light">Secretaria</span>
@@ -175,7 +175,7 @@
 						<!-- Add icons to the links using the .nav-icon class
                with font-awesome or any other icon font library -->
 
-						<li class="nav-item"><a href="/Secretaria" class="nav-link"> <i
+						<li class="nav-item"><a href="/webgenius/Secretaria" class="nav-link"> <i
 								class="nav-icon fas fa-th"></i>
 								<p>
 									Inicio <span class="right badge badge-danger">New</span>
@@ -197,7 +197,7 @@
 										<p> Matrícula</p>
 								</a></li>
 
-								<li class="nav-item"><a href="/Secretaria-Confirmacao"
+								<li class="nav-item"><a href="/webgenius/Secretaria-Confirmacao"
 									class="nav-link"> <i class="far fa-circle nav-icon"></i>
 										<p>Confirmação</p>
 								</a></li>
@@ -205,7 +205,7 @@
 								
 								
 								
-								<li class="nav-item"><a href="/Secretaria-Imprimir-Boletin"
+								<li class="nav-item"><a href="/webgenius/Secretaria-Imprimir-Boletin"
 									class="nav-link"> <i class="far fa-circle nav-icon"></i>
 										<p>Boletin De<br>Notas</p>
 								</a></li>
@@ -215,11 +215,11 @@
 							</ul></li>
 							
 						
-						<li class="nav-item"><a href="/Secretaria-Minha-Seguranca"
+						<li class="nav-item"><a href="/webgenius/Secretaria-Minha-Seguranca"
 							class="nav-link"> <i class="far fa-circle nav-icon"></i>
 								<p>Definições</p>
 						</a></li>
-						<li class="nav-item"><a href="/terminar-sessao"
+						<li class="nav-item"><a href="/webgenius/terminar-sessao"
 							class="nav-link"> <i class="far fa-circle nav-icon"></i>
 								<p>Logout</p>
 						</a></li>
@@ -351,7 +351,7 @@
 											
 										</div>
                                         
-										<form action="/Secretaria-Matricula" method="post" class="container">
+										<form action="/webgenius/Secretaria-Aluno" method="post" class="container">
 
 											<fieldset class="mb-5" id="curso1">
 											
@@ -387,70 +387,7 @@
 												</div>
 												<div class="col-md-4 col-lg-4 ">
 												
-												    <div class="form-group">
-
-
-
-
-													<div class="input-group">
-
-														  <input type="text" name="mae" placeholder="Nome Da Mâe" class="input container"
-														  title="Este Curso Pertence em Qual Departamento?">
-														
-													</div>
-												</div>
-												</div>
-												<div class="col-md-4 col-lg-4 ">
-												
-												    <div class="form-group">
-
-
-
-
-													<div class="input-group">
-
-														  <input type="text" name="pai" placeholder="Nome Do Pai" class="input container"
-														  title="Este Curso Pertence em Qual Departamento?">
-														
-													</div>
-												</div>
-												</div>
-												
-											</div>
-											<div class="row " >
-
-												<div class="col-md-4 col-lg-4 ">
-												
-												    <div class="form-group">
-
-
-													<div class="input-group">
-
-															 <input name="naturalidade" type="text"
-																class="input container"  placeholder="Naturalidade">
-													
-
-													</div>
-												</div>
-												</div>
-												<div class="col-md-4 col-lg-4 ">
-												
-												    <div class="form-group">
-
-
-
-
-													<div class="input-group">
-
-														  <input type="text" name="nacionalidade" placeholder="Nacionalidade" class="input container"
-														  title="Informe A Nacionalidade">
-														
-													</div>
-												</div>
-												</div>
-												<div class="col-md-4 col-lg-4 ">
-												
-												    <div class="form-group">
+												   <div class="form-group">
 
 
 
@@ -462,9 +399,30 @@
 														
 													</div>
 												</div>
+												
+												    
+												</div>
+												<div class="col-md-4 col-lg-4 ">
+												
+												    <div class="form-group">
+
+
+
+
+													<div class="input-group">
+
+														<p>
+															<label for="masc">Não Tem BI </label> 
+															<input name="semBI" type="radio" id="ss"
+																class="Container input" >
+														</p>
+
+													</div>
+												</div>
 												</div>
 												
 											</div>
+											
 											<div class="row ">
 
 												<div class="col-md-4 col-lg-4 ">
@@ -516,156 +474,7 @@
 												
 												
 											</div>
-											<hr>
-											    <div class="container">
-												<p>
-													<em class="lead whie-text cor2">Endereço</em>
-												</p>
-
-											</div>
-											<div class="row " >
 											
-											    <div class="col-md-3 col-lg-3 ">
-												
-												    <div class="form-group">
-												    
-												        <label for="provincia">Província</label>
-												    </div>
-												
-												    <div class="form-group">
-
-													
-														<select class="custom-select  container" name="provincia" id="provincia">
-															
-															<optgroup label="provincias"></optgroup>
-															<option selected id="provincias" value="Luanda">Luanda</option>
-															<option value="Bengo">Bengo</option>
-															<option value="Bié">Bié</option>
-															<option value="Huíla">Huíla</option>
-															<option value="Cunene">Cunene</option>
-															<option value="Malange">Malange</option>
-															<option value="Lunda-Norte">Lunda-Norte</option>
-															<option value="Lunda-Sul">Lunda-Sul</option>
-															<option value="Kwanza-sul">Kwanza-sul</option>
-															<option value="Kwanza-Norte">Kwanza-Norte</option>
-															<option value="Zaire">Zaire</option>
-															<option value="Moxico">Moxico</option>
-															<option value="Namibe">Namibe</option>
-															<option value="Cuando Cubango">Cuando Cubango</option>
-															<option value="Cabinda">Cabinda</option>
-															<option value="Uige">Uige</option>
-															<option value="Benguela">Benguela</option>
-															<option value="Huambo">Huambo</option>
-														</select>
-
-													</div>
-												</div>
-
-												<div class="col-md-3 col-lg-3 ">
-												
-												    <div class="form-group">
-
-
-													<div class="input-group">
-
-															 <input name="rua" type="text"
-																class="input container"  placeholder="Rua">
-													
-
-													</div>
-												</div>
-												</div>
-												<div class="col-md-3 col-lg-3 ">
-												
-												    <div class="form-group">
-
-
-
-
-													<div class="input-group">
-
-														  <input type="text" name="bairro" placeholder="Bairro" class="input container"
-														  title="Seu Bairro">
-														
-													</div>
-												</div>
-												</div>
-												
-												<div class="col-md-3 col-lg-3 ">
-												
-												    <div class="form-group">
-
-
-
-
-													<div class="input-group">
-
-														  <input type="text" name="municipio" placeholder="Município" class="input container"
-														  title="Informe O Município">
-														
-													</div>
-												</div>
-												</div>
-												
-											</div>
-											
-											
-
-
-											<hr>
-											<!-- Zoma de Contactos -->
-											
-											
-											  
-											  <hr>
-											    <div class="container">
-												<p>
-													<em class="lead whie-text cor2">Contactos</em>
-												</p>
-
-											</div>
-											<div class="row " >
-											
-											    <div class="col-md-3 col-lg-3 ">
-												
-												    <div class="form-group">
-
-
-													<div class="input-group">
-
-															 <input name="telefone" type="number" max="999999999" min="9"
-																class="input container" required="required" placeholder="Telefone">
-													
-
-													</div>
-												</div>
-												</div>
-
-												<div class="col-md-3 col-lg-3 ">
-												
-												    <div class="form-group">
-
-
-													<div class="input-group">
-
-															 <input name="email" type="email"
-																class="input container"  placeholder="Email">
-													
-
-													</div>
-												</div>
-												</div>
-												<div class="col-md-3 col-lg-3 ">
-												
-												    
-												</div>
-												
-												<div class="col-md-3 col-lg-3 ">
-												
-												    
-												</div>
-												
-											</div>
 											
 											
 
@@ -690,7 +499,6 @@
                                                 
                                                 <select class="custom-select  container" name="curso" id="duracao" required="required"
 														 >
-															
 															<option selected="selected"></option>
 															<option th:value="${cur}" th:each="cur : ${cursos}" th:text="${cur}">
 															
@@ -706,7 +514,7 @@
                                                 
                                                 <select class="custom-select  container" name="nivel" id="nivel" required="required"
 														 >
-															<option selected="selected"></option>
+														    <option selected="selected"></option>
 															<option th:value="${nivel}" th:each="nivel : ${niveis}" th:text="${nivel}">
 															
 															</option>
@@ -721,10 +529,12 @@
                                                <label for="curso">Turno</label>
                                                 
                                                 <select name="turno" id="curso" required="required">
+					                              
 					                                    <option selected="selected"></option>
 					                                    <option value="Manha">Manhã</option>
-					                                    <option value="Tarde" selected> Tarde</option>
-					                                    <option value="Noite" selected>Noite</option>
+					                                    <option value="Tarde" > Tarde</option>
+					                                    <option value="Noite">Noite</option>
+					                                
 					                                
 					                            </select>
                                             </div>

@@ -28,12 +28,18 @@ public class Aluno {
 	private ArrayList<String> mesesPagos = new ArrayList<>();
 	private ArrayList<String> valoresPagoss = new ArrayList<>();
 	private boolean pagamentoEfectuado;
+	private boolean semBI;
 	private String mesesAPagar;
 	
 	private String mes;
 	private String pagamento;
 	private String multa;
 	private String materia;
+	private String turmasVazia;
+	private String turmasCheias;
+	private String idFunc;
+	private String idAluno;
+	
 	
 	
 	
@@ -42,6 +48,46 @@ public class Aluno {
     
     
     
+
+	public String getIdAluno() {
+		return idAluno;
+	}
+
+	public void setIdAluno(String idAluno) {
+		this.idAluno = idAluno;
+	}
+
+	public boolean isSemBI() {
+		return semBI;
+	}
+
+	public void setSemBI(boolean semBI) {
+		this.semBI = semBI;
+	}
+
+	public String getTurmasVazia() {
+		return turmasVazia;
+	}
+
+	public void setTurmasVazia(String turmasVazia) {
+		this.turmasVazia = turmasVazia;
+	}
+	
+	public String getIdFunc(){
+		return idFunc;
+	}
+
+	public void setIdFunc(String idFunc) {
+		this.idFunc = idFunc;
+	}
+
+	public String getTurmasCheias() {
+		return turmasCheias;
+	}
+
+	public void setTurmasCheias(String turmasCheias) {
+		this.turmasCheias = turmasCheias;
+	}
 
 	public String getMateria() {
 		return materia;

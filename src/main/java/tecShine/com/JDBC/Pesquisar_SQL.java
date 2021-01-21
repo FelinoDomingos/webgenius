@@ -11,11 +11,13 @@ import tecShine.com.AcessoInteligente.AcessoInteligente;
 import tecShine.com.controller.TechShineController;
 import tecShine.com.model.Aluno;
 import tecShine.com.model.AlunoNotas;
+import tecShine.com.model.Conexao;
 import tecShine.com.model.Curso;
 import tecShine.com.model.Fase2;
 import tecShine.com.model.Funcionario;
 import tecShine.com.model.Minhas_Financas;
 import tecShine.com.model.Tesouraria_Diario;
+import tecShine.com.model.Usuario;
 import tecShine.com.model.WG.Escola;
 import tecShine.com.model.WG.PCA_WG;
 
@@ -51,7 +53,7 @@ public class Pesquisar_SQL {
 		ArrayList<PCA_WG> PCAs= new ArrayList<>();
 		
 		
-		String usarBD="use pca";
+		String usarBD="use webgenius";
 		
 		
 		 Connection con=null;
@@ -59,7 +61,10 @@ public class Pesquisar_SQL {
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD( "webgenius");
+			con = ConnectionFactory.getConnection("webgenius");
 			
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
@@ -205,7 +210,7 @@ public class Pesquisar_SQL {
 		ArrayList<Escola> escolas= new ArrayList<>();
 		
 		
-		String usarBD="use wg";
+		String usarBD="use webgenius";
 		
 		
 		 Connection con=null;
@@ -213,7 +218,10 @@ public class Pesquisar_SQL {
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD( "webgenius");
+			con = ConnectionFactory.getConnection("webgenius");
 			
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
@@ -279,7 +287,10 @@ public Fase2 pesquisarTodosAdmin(String BD,String bi,String usuario){
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			con = ConnectionFactory.getConnection(BD);
 			
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
@@ -338,7 +349,7 @@ public Fase2 pesquisarTodosAdmin(String BD,String bi,String usuario){
 public ArrayList<String> pesquisarColunaVazia(String BD,String coluna){
 	
 	
-	String sql="select "+coluna+" from controle_turmas ";
+	String sql="select "+coluna+" from Controle_Turmas ";
 	ArrayList<String> conteudos= new ArrayList<>();
 	
 	
@@ -350,7 +361,10 @@ public ArrayList<String> pesquisarColunaVazia(String BD,String coluna){
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -413,7 +427,10 @@ public ArrayList<String>pesquisarTudoEmString(String BD,String tabela,
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -470,6 +487,9 @@ public ArrayList<String>pesquisarTudoEmString2(String BD,String tabela,
 	ArrayList<String> conteudos= new ArrayList<>();
 	
 	
+	Conexao conexao = new Conexao();
+	conexao.setBD(BD);
+	
 	String usarBD="use "+BD;
 	
 	
@@ -478,7 +498,10 @@ public ArrayList<String>pesquisarTudoEmString2(String BD,String tabela,
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -543,7 +566,11 @@ public ArrayList<Funcionario>pesquisar_Dados_Pessoais_Funcionários(String BD,St
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -630,7 +657,12 @@ public ArrayList<AcessoInteligente>pesquisar_Dados_Pessoais_DeIntefrantes(String
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -724,7 +756,12 @@ public AcessoInteligente pesquisar_Dados_Pessoais_Dum_Intefrante(String BD,Strin
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -819,7 +856,12 @@ public Aluno pesquisar_Dados_Pessoais_Dum_Aluno(String BD,String tabela
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -910,7 +952,12 @@ public ArrayList<Integer> pesquisarTudoEmInt(String BD,String tabela,String colu
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -979,7 +1026,12 @@ public ArrayList<Integer> pesquisarTudoEmInt_Restrito(String BD,String tabela,St
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -1049,7 +1101,10 @@ public ArrayList<String> pesquisarTudoEmString_Restrito(String BD,String tabela,
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -1110,7 +1165,12 @@ public int pesquisarQConteudos_Na_coluna(String BD,String tabela,String coluna,
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -1182,7 +1242,11 @@ public ArrayList<String> pesquisar_Turmas_Do_Turno(String BD,String coluna_turno
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -1235,7 +1299,7 @@ public ArrayList<String> pesquisar_Turmas_Do_Turno(String BD,String coluna_turno
 public ArrayList<String> pesquisar_Turmas_Do_Curso(String BD,String coluna_turno
 		){
 	
-	String sql="select "+coluna_turno+" from cursos_turmas;";
+	String sql="select "+coluna_turno+" from CursosTurmas;";
 	System.out.println("Novo SQL: "+sql);
 	ArrayList<String> todasTurmas= new ArrayList<>();
 	
@@ -1247,7 +1311,12 @@ public ArrayList<String> pesquisar_Turmas_Do_Curso(String BD,String coluna_turno
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -1311,7 +1380,11 @@ public ArrayList<Tesouraria_Diario> pesquisar_Precos_Das_Propinas(String BD
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -1383,7 +1456,12 @@ public ArrayList<Tesouraria_Diario> pesquisar_Precos_Dos_Documentos(String BD
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -1463,7 +1541,12 @@ public ArrayList<Tesouraria_Diario> pesquisar_Precos_Dos_Materias(String BD
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -1536,7 +1619,11 @@ public ArrayList<Tesouraria_Diario> pesquisar_Precos_Daas_Matriculass(String BD
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -1608,7 +1695,10 @@ public ArrayList<Tesouraria_Diario> pesquisar_Precos_Daas_Faltass(String BD
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -1681,7 +1771,13 @@ public int pesquisar_Preco_Do_Estagio(String BD
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		
+		
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -1746,7 +1842,11 @@ public int pesquisar_Preco_Do_Recurso(String BD
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -1810,7 +1910,10 @@ public ArrayList<Tesouraria_Diario> pesquisar_Salario_Funcs(String BD
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -1895,7 +1998,11 @@ public String pesquisarUmConteudo_Numa_Linha_String(String BD,String tabela,
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -1959,7 +2066,11 @@ public Blob pesquisarUm_Logotipo(String BD,String tabela,
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -2038,7 +2149,12 @@ public int pesquisarUmConteudo_Numa_Linha_Int(String BD,String tabela,
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -2084,7 +2200,7 @@ public int pesquisarUmConteudo_Numa_Linha_Int(String BD,String tabela,
 
    public ArrayList<String> pesquisar_Desciplinas_Dum_Curso(String BD,String curso){
 	
-	   ArrayList<String> desciplinas= pesquisarTudoEmString(BD, "cursos_disciplinas", curso);
+	   ArrayList<String> desciplinas= pesquisarTudoEmString(BD, "Cursos_Disciplinas", curso);
 	   ArrayList<String> retorno= new ArrayList<>();
 	   Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
 	   String desc;
@@ -2102,7 +2218,7 @@ public int pesquisarUmConteudo_Numa_Linha_Int(String BD,String tabela,
    
    public ArrayList<String> pesquisar_Desciplinas_Chaves(String BD,String curso){
 		
-	   ArrayList<String> desciplinas= pesquisarTudoEmString(BD, "cursos_disciplinas", curso);
+	   ArrayList<String> desciplinas= pesquisarTudoEmString(BD, "Cursos_Disciplinas", curso);
 	   ArrayList<String> retorno= new ArrayList<>();
 	   Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
 	   String desc;
@@ -2120,7 +2236,7 @@ public int pesquisarUmConteudo_Numa_Linha_Int(String BD,String tabela,
    
    public ArrayList<String> pesquisar_Todos_Niveis_De_Uma_Desciplina(String BD,String curso){
 		
-	   ArrayList<String> desciplinas= pesquisarTudoEmString(BD, "cursos_disciplinas", curso);
+	   ArrayList<String> desciplinas= pesquisarTudoEmString(BD, "Cursos_Disciplinas", curso);
 	   ArrayList<String> retorno= new ArrayList<>();
 	   Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
 	   String desc;
@@ -2138,7 +2254,7 @@ public int pesquisarUmConteudo_Numa_Linha_Int(String BD,String tabela,
    
    public ArrayList<String> pesquisar_Desciplinas_De_Um_Unico_Nivel(String BD,String curso,String nivel){
 		
-	   ArrayList<String> desciplinas= pesquisarTudoEmString(BD, "cursos_disciplinas", curso);
+	   ArrayList<String> desciplinas= pesquisarTudoEmString(BD, "Cursos_Disciplinas", curso);
 	   ArrayList<String> retorno= new ArrayList<>();
 	   Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
 	   String desc;
@@ -2161,7 +2277,7 @@ public int pesquisarUmConteudo_Numa_Linha_Int(String BD,String tabela,
    
    public ArrayList<String> pesquisar_Todas_Turmas_De_Um_Curso(String BD,String curso){
 		
-	   ArrayList<String> desciplinas= pesquisarTudoEmString(BD, "cursos_turmas", curso);
+	   ArrayList<String> desciplinas= pesquisarTudoEmString(BD, "CursosTurmas", curso);
 	   ArrayList<String> retorno= new ArrayList<>();
 	   
 	   for (String desciplina : desciplinas) {
@@ -2432,7 +2548,7 @@ public int pesquisarUmConteudo_Numa_Linha_Int(String BD,String tabela,
 		System.out.println("nomeTurma: "+nomeTurma);
 		
 		
-		ArrayList<String> desciplinas= p.pesquisarTudoEmString(BD, "cursos_disciplinas", curso);
+		ArrayList<String> desciplinas= p.pesquisarTudoEmString(BD, "Cursos_Disciplinas", curso);
 		int quantCursos= 0;
 		
 		
@@ -2504,7 +2620,7 @@ public int pesquisarUmConteudo_Numa_Linha_Int(String BD,String tabela,
 			sair:
 			for(String c : turmasFiltradas) {
 				
-				id = p.pesquisarUmConteudo_Numa_Linha_Int(BD, c+"_dadospessoais", "id", "bi", bi, 0);
+				id = p.pesquisarUmConteudo_Numa_Linha_Int(BD, c+"_Avaliacao", "id", "bi", bi, 0);
 				
 				if(id>0) {
 					
@@ -2572,7 +2688,7 @@ public int pesquisarUmConteudo_Numa_Linha_Int(String BD,String tabela,
 		System.out.println("nomeTurma: "+nomeTurma);
 		
 		
-		ArrayList<String> desciplinas= p.pesquisarTudoEmString(BD, "cursos_disciplinas", curso);
+		ArrayList<String> desciplinas= p.pesquisarTudoEmString(BD, "Cursos_Disciplinas", curso);
 		int quantCursos= 0;
 		
 		
@@ -2597,7 +2713,7 @@ public int pesquisarUmConteudo_Numa_Linha_Int(String BD,String tabela,
 		}
 		
 		
-		ArrayList<String> turmas= pesquisar_Turmas_Do_Curso(BD, curso); 
+		ArrayList<String> turmas= p.pesquisarTudoEmString(BD, "Controle_Turmas", turno);
 	    String ttt;
 			
 			
@@ -2641,16 +2757,20 @@ public int pesquisarUmConteudo_Numa_Linha_Int(String BD,String tabela,
 			aluno2.setAlunoExiste(false);
 			String alunoNome = aluno.getNome();
 			
-			if(alunoNome.endsWith(",,")) {
+			if(alunoNome!=null){
 				
-		    	String[]a = alunoNome.split(",,");
-		    	
-		    	if(a.length>0) {
-		    		
-		    		System.out.println(a[0]);
-					alunoNome= 	a[0];
-		    	}
-		    	
+				if(alunoNome.endsWith(",,")) {
+					
+					String[]a = alunoNome.split(",,");
+					
+					if(a.length>0) {
+						
+						System.out.println(a[0]);
+						alunoNome= 	a[0];
+					}
+					
+				}
+			
 			}
 			System.out.println("ALUNO_NOME: "+alunoNome);
 			
@@ -2786,7 +2906,12 @@ public int pesquisarUmConteudo_Numa_Linha_Int(String BD,String tabela,
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			
+			
+			con = ConnectionFactory.getConnection(BD);
 			
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
@@ -2866,7 +2991,7 @@ public ArrayList<Escola> Listar_Escolas_Na_WG(
 	String sql="select id,escola,contrato,telefone,alunos,valor,data,bi from escolas";
 	ArrayList<Escola> escolas= new ArrayList<>();
 	
-	String usarBD="use wg";
+	String usarBD="use webgenius";
 	
 	
 	 Connection con=null;
@@ -2874,7 +2999,10 @@ public ArrayList<Escola> Listar_Escolas_Na_WG(
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD("webgenius");
+		con = ConnectionFactory.getConnection("webgenius");
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -2945,7 +3073,11 @@ public ArrayList<Curso> Listar_Cursos(
 	 PreparedStatement stm=null ;
 	
 	try{
-		con = ConnectionFactory.getConnection();
+		
+		Conexao conexao = new Conexao();
+		conexao.setBD(BD);
+		
+		con = ConnectionFactory.getConnection(BD);
 		
 		stm = con.prepareStatement(sql);
 		stm.executeUpdate(usarBD);
@@ -3011,11 +3143,11 @@ public ArrayList<String> usuario_Tem_Acesso(String usuario,String senha){
 	 
 	 boolean retorno= false;
 	 
-	 
-	 ArrayList<String> escolas = p.pesquisarTudoEmString2("wg", "escolas", "escola");
-	 ArrayList<String> BIs_PCAS = p.pesquisarTudoEmString2("wg", "escolas", "bi");
-	 ArrayList<String> escolas_Cadastradas = p.pesquisarTudoEmString("wg", "escolas", "escola");
-	 
+	 Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
+	 ArrayList<String> escolas = p.pesquisarTudoEmString2("webgenius", "escolas", "escola");
+	 ArrayList<String> BIs_PCAS = p.pesquisarTudoEmString2("webgenius", "escolas", "bi");
+	 ArrayList<String> escolas_Cadastradas = p.pesquisarTudoEmString("webgenius", "escolas", "escola");
+	 ArrayList<String> escolas2 = p.pesquisarTudoEmString2("webgenius", "escolas", "escola2");
 	 
 	 String BD ;
 	 ArrayList<String> retorno2= new ArrayList<>();
@@ -3040,9 +3172,13 @@ public ArrayList<String> usuario_Tem_Acesso(String usuario,String senha){
 					 
 					 retorno2.add(""+0);
 					 retorno2.add(BIs_PCAS.get(i));
-					 BD = escolas.get(i);
+					 BD = escolas2.get(i);
+					 
+					 
+					 
 					 System.out.println("Nova BD: "+BD);
 					 retorno2.add(BD);
+					 retorno2.add("");
 					 
 					 
 					 System.out.println("BI Igual");
@@ -3064,6 +3200,7 @@ public ArrayList<String> usuario_Tem_Acesso(String usuario,String senha){
 									 BD = escolas.get(i);
 									 System.out.println("Nova BD2: "+BD);
 									 retorno2.add(BD);
+									 retorno2.add("");
 									 
 								   retorno=true;
 								   break sair;
@@ -3078,27 +3215,43 @@ public ArrayList<String> usuario_Tem_Acesso(String usuario,String senha){
 									 
 									 for (String escola : escolas_Cadastradas) {
 										
-										 
-										 acesso_Personalizado= p.pesquisarUmConteudo_Numa_Linha_String(escola, "pca_"+escola, "bi", "acesso1", senha, 0);
-										 usuario2 = p.pesquisarUmConteudo_Numa_Linha_String(escola, "pca_"+escola, "usuario", "acesso1", acesso_Personalizado, 0);
-										 String bi2 = p.pesquisarUmConteudo_Numa_Linha_String(escola, "pca_"+escola, "bi", "acesso1", acesso_Personalizado, 0);
-										 System.out.println("ACESSU PERSONALIZADO: "+acesso_Personalizado);
-										 System.out.println("BI: "+bi2);
-										 
-										 if(acesso_Personalizado.equals(senha)&&
-												 (usuario.equalsIgnoreCase(usuario2))) {
+										
+                                        if(escola.equalsIgnoreCase("")) {
+											 
+										 }else {
+											 
+											 System.out.println("Escola no Stio Certo");
+											 
+											 acesso_Personalizado= p.pesquisarUmConteudo_Numa_Linha_String(escola, "pca_"+escola, "acesso1", "acesso1", senha, 0);
+											 usuario2 = p.pesquisarUmConteudo_Numa_Linha_String(escola, "pca_"+escola, "usuario", "acesso1", senha, 0);
+											 String bi2 = p.pesquisarUmConteudo_Numa_Linha_String(escola, "pca_"+escola, "bi", "acesso1", senha, 0);
+											 System.out.println("ACESSU PERSONALIZADO: "+acesso_Personalizado);
+											 System.out.println("BI: "+bi2);
+											 System.out.println("usuario2: "+usuario2);
+											 
+											 System.out.println("=====<<<: "+acesso_Personalizado+"="+senha);
+											 System.out.println("=====<<<: "+usuario+"="+usuario2);
 											 
 											 
 											 
-											 retorno2.add(""+0);
-											 retorno2.add(bi2);
-											 retorno2.add(escola);
-											
-											 
+											 if(acesso_Personalizado.equals(senha)&&
+													 (usuario.equalsIgnoreCase(usuario2))) {
+												 
+												 
+												 
+												 retorno2.add(""+0);
+												 retorno2.add(bi2);
+												 retorno2.add(escola);
+												 retorno2.add("");
+												
+												 
 
-											 retorno=true;
-											 break sair;
-									 }
+												 retorno=true;
+												 break sair;
+										 }
+										 }
+ 
+										
 								 
 									}
 								 }
@@ -3120,7 +3273,6 @@ public ArrayList<String> usuario_Tem_Acesso(String usuario,String senha){
 		 
 	 }else if(usuario.endsWith("AL")) {
 		 
-		 Tabela_Actualizar_SQL ta= new Tabela_Actualizar_SQL();
 		 String quebrar;
 		 String turma=null;
 		 
@@ -3128,13 +3280,13 @@ public ArrayList<String> usuario_Tem_Acesso(String usuario,String senha){
 			 for (String escola : escolas) {
 				
 				  String[]a= usuario.split(" ");
-				  quebrar = a[1];
+				  quebrar =   a[a.length-2];
 				  
 				  
 				  
-				  ArrayList<String> tManha = p.pesquisarTudoEmString(escola, "controle_turmas", "Manha");
-				  ArrayList<String> tTarde = p.pesquisarTudoEmString(escola, "controle_turmas", "Tarde");
-				  ArrayList<String> tNoite = p.pesquisarTudoEmString(escola, "controle_turmas", "Noite");
+				  ArrayList<String> tManha = p.pesquisarTudoEmString(escola, "Controle_Turmas", "Manha");
+				  ArrayList<String> tTarde = p.pesquisarTudoEmString(escola, "Controle_Turmas", "Tarde");
+				  ArrayList<String> tNoite = p.pesquisarTudoEmString(escola, "Controle_Turmas", "Noite");
 					 
 				  sair2:
 				  for(String cadaC: tManha) {
@@ -3171,13 +3323,13 @@ public ArrayList<String> usuario_Tem_Acesso(String usuario,String senha){
 					  if(turma!=null) {
 						  
 						  
-						  id = p.pesquisarUmConteudo_Numa_Linha_Int(escola, turma+"_DadosPessoais", "id", "bi", senha, 0);
+						  id = p.pesquisarUmConteudo_Numa_Linha_Int(escola, turma+"_Avaliacao", "id", "bi", senha, 0);
 							 if(id==0) {
 								 id = p.pesquisarUmConteudo_Numa_Linha_Int(escola, turma+"_Acesso", "id", "acesso1", senha, 0);
 							 }
-							 bi= p.pesquisarUmConteudo_Numa_Linha_String(escola, turma+"_DadosPessoais", "bi", "id", "", id);
-							 acesso_Personalizado= p.pesquisarUmConteudo_Numa_Linha_String(escola, turma+"_acesso", "acesso1", "id", "", id);
-							 usuarioBD = p.pesquisarUmConteudo_Numa_Linha_String(escola, turma+"_acesso", "usuario", "id", "", id);
+							 bi= p.pesquisarUmConteudo_Numa_Linha_String(escola, turma+"_Avaliacao", "bi", "id", "", id);
+							 acesso_Personalizado= p.pesquisarUmConteudo_Numa_Linha_String(escola, turma+"_Acesso", "acesso1", "id", "", id);
+							 usuarioBD = p.pesquisarUmConteudo_Numa_Linha_String(escola, turma+"_Acesso", "usuario", "id", "", id);
 								 
 							 if(acesso_Personalizado.endsWith("_NP")) {
 								 
@@ -3191,8 +3343,6 @@ public ArrayList<String> usuario_Tem_Acesso(String usuario,String senha){
 									 retorno2.add(""+id);
 									 retorno2.add(bi);
 									 retorno2.add(escola);
-									 
-									
 									 retorno2.add(turma);
 									 
 									 
@@ -3216,9 +3366,9 @@ public ArrayList<String> usuario_Tem_Acesso(String usuario,String senha){
 			 (usuario.contains("ander"))) {
 		 
 		 
-		 ArrayList<String> PCAs = p.pesquisarTudoEmString("wg", "PCA", "usuario");
-		 ArrayList<String> BIs = p.pesquisarTudoEmString("wg", "PCA", "bi");
-		 ArrayList<String> acessoConfigurado = p.pesquisarTudoEmString("wg", "PCA", "acesso2");
+		 ArrayList<String> PCAs = p.pesquisarTudoEmString("webgenius", "PCA", "usuario");
+		 ArrayList<String> BIs = p.pesquisarTudoEmString("webgenius", "PCA", "bi");
+		 ArrayList<String> acessoConfigurado = p.pesquisarTudoEmString("webgenius", "PCA", "acesso2");
 		 
 		 sair:
 		 for (int i = 0; i < PCAs.size(); i++) {
@@ -3231,7 +3381,8 @@ public ArrayList<String> usuario_Tem_Acesso(String usuario,String senha){
 				 
 				 retorno2.add(""+0);
 				 retorno2.add(BIs.get(i));
-				 retorno2.add("wg");
+				 retorno2.add("webgenius");
+				 retorno2.add("");
 				 
 				 retorno=true;
 				 
@@ -3248,7 +3399,8 @@ public ArrayList<String> usuario_Tem_Acesso(String usuario,String senha){
 					 
 					 retorno2.add(""+0);
 					 retorno2.add(BIs.get(i));
-					 retorno2.add("wg");
+					 retorno2.add("webgenius");
+					 retorno2.add("");
 					 
 					 System.out.println("Nome: "+PCAs.get(i));
 					 retorno=true;
@@ -3298,9 +3450,9 @@ public ArrayList<String> usuario_Tem_Acesso(String usuario,String senha){
 							 id = p.pesquisarUmConteudo_Numa_Linha_Int(escola, func_BD+"_Acesso", "id", "acesso1", senha, 0);
 						 }
 							 bi= p.pesquisarUmConteudo_Numa_Linha_String(escola, func_BD+"_DadosPessoais", "bi", "id", "", id);
-							 usuarioBD = p.pesquisarUmConteudo_Numa_Linha_String(escola, func_BD+"_acesso", "usuario", "id", "", id);
+							 usuarioBD = p.pesquisarUmConteudo_Numa_Linha_String(escola, func_BD+"_Acesso", "usuario", "id", "", id);
 						 
-						 acesso_Personalizado= p.pesquisarUmConteudo_Numa_Linha_String(escola, func_BD+"_acesso", "acesso1", "id", "", id);
+						 acesso_Personalizado= p.pesquisarUmConteudo_Numa_Linha_String(escola, func_BD+"_Acesso", "acesso1", "id", "", id);
 					
 						 
 						 if(acesso_Personalizado.endsWith("_NP")) {
@@ -3316,6 +3468,7 @@ public ArrayList<String> usuario_Tem_Acesso(String usuario,String senha){
 								 retorno2.add(""+id);
 								 retorno2.add(bi);
 								 retorno2.add(escola);
+								 retorno2.add("");
 						    	 
 								 retorno=true;
 						    	 break sair;
@@ -3345,14 +3498,21 @@ public ArrayList<String> usuario_Tem_Acesso(String usuario,String senha){
    public ArrayList<String> listarFuncionarios() {
 	   
 	   ArrayList<String> funcionarios= new ArrayList<>();
-		  	 
-	   funcionarios.add("Professor");
-	   funcionarios.add("Secretaria");
-	   funcionarios.add("Tesouraria");
-	   funcionarios.add("Coord");
+		  	
+	   
 	   funcionarios.add("DG");
 	   funcionarios.add("DA");
 	   funcionarios.add("DP");
+	   funcionarios.add("Coord");
+	   funcionarios.add("Professor");
+	   funcionarios.add("Secretaria");
+	   funcionarios.add("Tesouraria");
+	   funcionarios.add("Limpeza");
+	   funcionarios.add("Seguranca");
+	   funcionarios.add("Cozinheira");
+	   
+	   
+	   
 	   
 	   return funcionarios;
    }
@@ -3360,7 +3520,229 @@ public ArrayList<String> usuario_Tem_Acesso(String usuario,String senha){
 
  
    
+   public  Usuario retornaUsuario(String BD,String idFunc,String escola){
+		
+		
+		int id =0;
+		String nome = null;
+		String bi = null; 
+		Pesquisar_SQL p = new Pesquisar_SQL();
+		
+		
+		
+		Usuario usuario = new Usuario();
+		
+		if(idFunc.contains("C")){
+			
+			
+			 id = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "Coord_Acesso", "acesso1", "contrato", idFunc, 0);
+			 bi = p.pesquisarUmConteudo_Numa_Linha_String(BD, "Coord_DadosPessoais", "bi", "id", "", id);
+			 nome = p.pesquisarUmConteudo_Numa_Linha_String(BD, "Coord_DadosPessoais", "nomes", "id", "", id);
+			 
+		     usuario.setBi(bi);
+		     usuario.setId(id);
+		     usuario.setNome(nome);
+			 usuario.setExisteUsuario(true);
+			 usuario.setIntegrante("Coord");
+			 
+	}else if (idFunc.contains("S")){
+			
+			 id = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "Secretaria_Acesso", "acesso1", "contrato", idFunc, 0);
+			 bi = p.pesquisarUmConteudo_Numa_Linha_String(BD, "Secretaria_DadosPessoais", "bi", "id", "", id);
+			 nome = p.pesquisarUmConteudo_Numa_Linha_String(BD, "Secretaria_DadosPessoais", "nomes", "id", "", id);
+			 
+		     usuario.setBi(bi);
+		     usuario.setId(id);
+		     usuario.setNome(nome);
+			 usuario.setExisteUsuario(true);
+			 usuario.setIntegrante("Secretaria");
+			
+			
+		}else if (idFunc.contains("T")){
+			
+			
+			 id = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "Tesouraria_Acesso", "acesso1", "contrato", idFunc, 0);
+			 bi = p.pesquisarUmConteudo_Numa_Linha_String(BD, "Tesouraria_DadosPessoais", "bi", "id", "", id);
+			 nome = p.pesquisarUmConteudo_Numa_Linha_String(BD, "Tesouraria_DadosPessoais", "nomes", "id", "", id);
+			 
+		     usuario.setBi(bi);
+		     usuario.setId(id);
+		     usuario.setNome(nome);
+			 usuario.setExisteUsuario(true);
+			 usuario.setIntegrante("Tesouraria");
+			
+			
+		}else if (idFunc.contains("P")){
+			
+			 id = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "Professor_Acesso", "acesso1", "contrato", idFunc, 0);
+			 bi = p.pesquisarUmConteudo_Numa_Linha_String(BD, "Professor_DadosPessoais", "bi", "id", "", id);
+			 nome = p.pesquisarUmConteudo_Numa_Linha_String(BD, "Professor_DadosPessoais", "nomes", "id", "", id);
+			 
+		     usuario.setBi(bi);
+		     usuario.setId(id);
+		     usuario.setNome(nome);
+			 usuario.setExisteUsuario(true);
+			 usuario.setIntegrante("Professor");
+			
+			
+		}else if (idFunc.contains("DP")){
+			
+			id = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "DP_Acesso", "acesso1", "contrato", idFunc, 0);
+			 bi = p.pesquisarUmConteudo_Numa_Linha_String(BD, "DP_DadosPessoais", "bi", "id", "", id);
+			 nome = p.pesquisarUmConteudo_Numa_Linha_String(BD, "DP_DadosPessoais", "nomes", "id", "", id);
+			 
+		     usuario.setBi(bi);
+		     usuario.setId(id);
+		     usuario.setNome(nome);
+			 usuario.setExisteUsuario(true);
+			 usuario.setIntegrante("DP");
+			
+			
+		}else if (idFunc.contains("DA")){
+			
+			
+			id = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "DA_Acesso", "acesso1", "contrato", idFunc, 0);
+			 bi = p.pesquisarUmConteudo_Numa_Linha_String(BD, "DA_DadosPessoais", "bi", "id", "", id);
+			 nome = p.pesquisarUmConteudo_Numa_Linha_String(BD, "DA_DadosPessoais", "nomes", "id", "", id);
+			 
+		     usuario.setBi(bi);
+		     usuario.setId(id);
+		     usuario.setNome(nome);
+			 usuario.setExisteUsuario(true);
+			 usuario.setIntegrante("DA");
+			
+			
+		}else if (idFunc.contains("DG")) {
+			
+			
+			 id = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "DG_Acesso", "acesso1", "contrato", idFunc, 0);
+			 bi = p.pesquisarUmConteudo_Numa_Linha_String(BD, "DG_DadosPessoais", "bi", "id", "", id);
+			 nome = p.pesquisarUmConteudo_Numa_Linha_String(BD, "DG_DadosPessoais", "nomes", "id", "", id);
+			 
+		     usuario.setBi(bi);
+		     usuario.setId(id);
+		     usuario.setNome(nome);
+			 usuario.setExisteUsuario(true);
+			 usuario.setIntegrante("DG");
+			
+			
+			
+		}else if ((idFunc.contains("pca"))||(idFunc.contains("PCA"))) {
+			
+			
+			 bi = p.pesquisarUmConteudo_Numa_Linha_String(BD, "pca_"+BD, "bi", "contrato", idFunc, 0);
+			 nome = p.pesquisarUmConteudo_Numa_Linha_String(BD, "pca_"+BD, "nome", "contrato", idFunc, 0);
+			 
+		     usuario.setBi(bi);
+		     usuario.setId(0);
+		     usuario.setNome(nome);
+			 usuario.setExisteUsuario(true);
+			 usuario.setIntegrante("PCA");
+			
+			
+			
+		}else{
+			
+			usuario.setExisteUsuario(false);
+		}
+				 
+				 
+				 
+			
+		
+		
+		return usuario;
+	}
    
+   public  Usuario retornaUsuario2(String BD,String idAluno){
+	   
+	   
+	      ArrayList<String> tManha = pesquisarTudoEmString(BD, "Controle_Turmas", "Manha");
+		  ArrayList<String> tTarde = pesquisarTudoEmString(BD, "Controle_Turmas", "Tarde");
+		  ArrayList<String> tNoite = pesquisarTudoEmString(BD, "Controle_Turmas", "Noite");
+		  Usuario usuario = new Usuario();
+		  usuario.setExisteUsuario(false);
+		  
+		  boolean estado= false;
+		  
+		  String turma= null;
+		  int id = 0;
+		  
+		  sair:
+		  for(String cadC : tManha) {
+			  
+			  
+			  id = Integer.parseInt(idAluno);
+			  id = pesquisarUmConteudo_Numa_Linha_Int(BD, cadC, "NProc", "NProc", "", id);
+			  turma = cadC;
+			  
+			  
+			  if(id>0) {
+				  
+				  usuario.setId(id);
+				  usuario.setTurma(turma);
+				  usuario.setExisteUsuario(true);
+				  estado = true;
+				  
+				  break sair;
+			  }
+		  }
+		  
+		  
+		  if(estado) {
+			  
+			  sair:
+				  for(String cadC : tTarde) {
+					  
+					  
+					  id = Integer.parseInt(idAluno);
+					  id = pesquisarUmConteudo_Numa_Linha_Int(BD, cadC, "NProc", "NProc", "", id);
+					  turma = cadC;
+					  
+					  
+					  if(id>0) {
+						  
+						  usuario.setId(id);
+						  usuario.setTurma(turma);
+						  usuario.setExisteUsuario(true);
+						  estado = true;
+						  
+						  break sair;
+					  }
+				  }
+			  
+		  }
+		  
+		  
+            if(estado) {
+			  
+			  sair:
+				  for(String cadC : tNoite) {
+					  
+					  
+					  id = Integer.parseInt(idAluno);
+					  id = pesquisarUmConteudo_Numa_Linha_Int(BD, cadC, "NProc", "NProc", "", id);
+					  turma = cadC;
+					  
+					  
+					  if(id>0) {
+						  
+						  usuario.setId(id);
+						  usuario.setTurma(turma);
+						  usuario.setExisteUsuario(true);
+						  estado = true;
+						  
+						  break sair;
+					  }
+				  }
+			  
+		  }
+		  
+		  
+		  return usuario;
+			
+	   
+   }
   
   
 }

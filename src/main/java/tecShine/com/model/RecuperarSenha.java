@@ -4,9 +4,18 @@ public class RecuperarSenha {
 
 	private String palavra;
 	private String senha;
+	private String IdFunc;
 	
 	
 	
+
+	public String getIdFunc() {
+		return IdFunc;
+	}
+
+	public void setIdFunc(String idFunc) {
+		IdFunc = idFunc;
+	}
 
 	public String getSenha() {
 		return senha;

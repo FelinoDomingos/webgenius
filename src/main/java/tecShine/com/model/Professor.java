@@ -13,11 +13,18 @@ public class Professor {
 	private String curso;
 	private String nivel;
 	private String descricao;
+	private String idFunc;
 	 
 	
 	
 	
 	
+	public String getIdFunc() {
+		return idFunc;
+	}
+	public void setIdFunc(String idFunc) {
+		this.idFunc = idFunc;
+	}
 	public String getDescricao() {
 		return descricao;
 	}
@@ -66,7 +73,6 @@ public class Professor {
 	public void setTurma(String turma) {
 		this.turma = turma;
 	}
-	
 	
 	
 	

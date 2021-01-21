@@ -17,10 +17,17 @@ public class Relatorio {
 	private String estudante;
 	private String turno;
 	private String nivel;
+	private String meses;
 	
 	
 	
 	
+	public String getMeses() {
+		return meses;
+	}
+	public void setMeses(String meses) {
+		this.meses = meses;
+	}
 	public String getTurno() {
 		return turno;
 	}

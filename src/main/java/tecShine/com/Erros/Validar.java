@@ -22,9 +22,9 @@ public class Validar {
 		ArrayList<String> niveis = p.pesquisarTudoEmString(BD, "infoescola", "niveis");
 		
 
-		ArrayList<String> turmasManha = p.pesquisarTudoEmString(BD, "controle_turmas", "Manha");
-		ArrayList<String> turmasTarde = p.pesquisarTudoEmString(BD, "controle_turmas", "Tarde");
-		ArrayList<String> turmasNoite = p.pesquisarTudoEmString(BD, "controle_turmas", "Noite");
+		ArrayList<String> turmasManha = p.pesquisarTudoEmString(BD, "Controle_Turmas", "Manha");
+		ArrayList<String> turmasTarde = p.pesquisarTudoEmString(BD, "Controle_Turmas", "Tarde");
+		ArrayList<String> turmasNoite = p.pesquisarTudoEmString(BD, "Controle_Turmas", "Noite");
 
 		
 		System.out.println("=======================================\n\n");

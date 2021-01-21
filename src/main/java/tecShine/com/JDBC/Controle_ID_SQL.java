@@ -5,6 +5,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import tecShine.com.model.Conexao;
+
 
 
 
@@ -50,7 +52,10 @@ public  int recuperarCodigo(String BD,String tabela,String coluna){
 		 PreparedStatement stm=null ;
 		
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			con = ConnectionFactory.getConnection(BD);
 			
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);

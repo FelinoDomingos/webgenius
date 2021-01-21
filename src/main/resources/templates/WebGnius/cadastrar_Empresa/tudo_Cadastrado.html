@@ -1,6 +1,9 @@
 
  <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br"
+            xmlns:th="https://thymeleaf.org"
+		    xmlns:layout:="https://www.ultraq.net.nz/thymeleaf/layout"
+		    >
 
 <head>
     <meta charset="utf-8">
@@ -125,7 +128,7 @@
   <!-- Main Sidebar Container -->
   <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
-    <a href="index3.html" class="brand-link">
+    <a href="#" class="brand-link">
       <img src="dist/img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3"
            style="opacity: .8">
       <span class="brand-text font-weight-light">Admin</span>
@@ -139,7 +142,7 @@
           <img src="dist/img/user2-160x160.jpg" class="img-circle elevation-2" alt="User Image">
         </div>
         <div class="info">
-          <a href="#" class="d-block">Euclair Thompson</a>
+          <a href="#" class="d-block" th:text="${nome}"></a>
         </div>
       </div>
 
@@ -150,7 +153,7 @@
 						<!-- Add icons to the links using the .nav-icon class
                with font-awesome or any other icon font library -->
 
-						<li class="nav-item"><a href="/admin" class="nav-link"> <i
+						<li class="nav-item"><a href="/webgenius/admin" class="nav-link"> <i
 								class="nav-icon fas fa-th"></i>
 								<p>
 									Inicio <span class="right badge badge-danger">New</span>

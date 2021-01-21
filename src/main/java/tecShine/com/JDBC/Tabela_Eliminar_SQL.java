@@ -5,6 +5,8 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
+import tecShine.com.model.Conexao;
+
 public class Tabela_Eliminar_SQL {
 
 	public void EliminarQualTabela(String BD,String tabela,
@@ -49,7 +51,12 @@ public class Tabela_Eliminar_SQL {
 				 sql="drop table "+turma;
 
 				try{
-					con = ConnectionFactory.getConnection();
+					
+					Conexao conexao = new Conexao();
+				    conexao.setBD(BD);
+				    
+				    
+					con = ConnectionFactory.getConnection(BD);
 
 					stm = con.prepareStatement(sql);
 					stm.executeUpdate(usarBD);
@@ -80,7 +87,7 @@ public class Tabela_Eliminar_SQL {
 			
 			if((tabela.contains("_turma"))||(tabela.contains("_Turma"))) {
 
-				t.actualizarColuna_Qualquer_Linha(BD, "controle_turmas", "Manha", 0, "", "Manha", tabela);
+				t.actualizarColuna_Qualquer_Linha(BD, "Controle_Turmas", "Manha", 0, "", "Manha", tabela);
 
 				ArrayList<String> cursos= p.pesquisarTudoEmString(BD, "cursos", "nome");
 
@@ -89,16 +96,16 @@ public class Tabela_Eliminar_SQL {
 
 
 
-					t.actualizarColuna_Qualquer_Linha(BD, "cursos_turmas", c, 0, "", c, tabela);
+					t.actualizarColuna_Qualquer_Linha(BD, "CursosTurmas", c, 0, "", c, tabela);
 
 				}
 			}
 			
 			
 			
-			int conteudo= t.retornarUmConteudo_Int(BD, "controle_turmas", "qTurmas");
+			int conteudo= t.retornarUmConteudo_Int(BD, "Controle_Turmas", "qTurmas");
 			--conteudo;
-			t.actualizarColuna_Na_PrimeiraLinha(BD, "controle_turmas", "qTurmas", conteudo);
+			t.actualizarColuna_Na_PrimeiraLinha(BD, "Controle_Turmas", "qTurmas", conteudo);
 			
 			turmas=null;
 			t=null;
@@ -112,7 +119,12 @@ public class Tabela_Eliminar_SQL {
 				 sql="drop table "+tabela;
 
 				try{
-					con = ConnectionFactory.getConnection();
+					
+					Conexao conexao = new Conexao();
+				    conexao.setBD(BD);
+				    
+				    
+					con = ConnectionFactory.getConnection(BD);
 
 					stm = con.prepareStatement(sql);
 					stm.executeUpdate(usarBD);
@@ -150,7 +162,12 @@ public class Tabela_Eliminar_SQL {
 				 sql="drop table "+tabela;
 
 				try{
-					con = ConnectionFactory.getConnection();
+					
+					Conexao conexao = new Conexao();
+				    conexao.setBD(BD);
+				    
+				    
+					con = ConnectionFactory.getConnection(BD);
 
 					stm = con.prepareStatement(sql);
 					stm.executeUpdate(usarBD);

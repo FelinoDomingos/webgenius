@@ -25,6 +25,8 @@ public class BD_Criar_SQL {
  * @param nomeDaBD
  * @return
  */
+	
+	/*
 public  String criarBaseDeDados( String nomeDaBD){
 		
 		String sql="create database "+nomeDaBD;
@@ -59,5 +61,5 @@ public  String criarBaseDeDados( String nomeDaBD){
 		return null;
 	}
 
-
+  */
 }

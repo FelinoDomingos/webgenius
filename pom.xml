@@ -11,6 +11,7 @@
 	<groupId>com.example</groupId>
 	<artifactId>TecShine</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+	<packaging>war</packaging>
 	<name>TecShine</name>
 	<description>Demo project for Spring Boot</description>
  
@@ -27,6 +28,15 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
+		<dependency>
+   <groupId>
+      org.springframework.boot
+   </groupId>
+   <artifactId>
+      spring-boot-starter-tomcat
+   </artifactId>
+   <scope>provided</scope>
+</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -34,11 +44,17 @@
 			<scope>runtime</scope>
 			<optional>true</optional>
 		</dependency>
-		<dependency>   
-			<groupId>mysql</groupId>
-			<artifactId>mysql-connector-java</artifactId>
-			<scope>runtime</scope>
-		</dependency>
+		
+		<!-- https://mvnrepository.com/artifact/org.springframework.security/spring-security-core -->
+
+		
+		<!-- https://mvnrepository.com/artifact/mysql/mysql-connector-java -->
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+    <version>8.0.21</version>
+</dependency>
+
 		
 		<dependency>
 		  <groupId>org.postgresql</groupId>
@@ -128,3 +144,4 @@
 	</build>
 
 </project>
+

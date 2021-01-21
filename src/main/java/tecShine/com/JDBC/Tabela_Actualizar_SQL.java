@@ -7,7 +7,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 
 import tecShine.com.model.Aluno;
-import tecShine.com.model.Financa;
+import tecShine.com.model.Conexao;
 
 public class Tabela_Actualizar_SQL {
 
@@ -32,7 +32,11 @@ public class Tabela_Actualizar_SQL {
 					
 					
 					try{
-						con = ConnectionFactory.getConnection();
+						
+						Conexao conexao = new Conexao();
+					    conexao.setBD(BD);
+					    
+						con = ConnectionFactory.getConnection(BD);
 						
 						stm = con.prepareStatement(sql);
 						stm.executeUpdate(usarBD);
@@ -92,11 +96,16 @@ public class Tabela_Actualizar_SQL {
         
 		 
 		 //System.out.println("valor do conteudo: "+conteudos);
-		 String sql="update controle_turmas set qTurmas="+coluna+" where id="+1;
+		 String sql="update Controle_Turmas set qTurmas="+coluna+" where id="+1;
 		 System.out.println(sql); 	
 			
 			try{
-				con = ConnectionFactory.getConnection();
+				
+				Conexao conexao = new Conexao();
+			    conexao.setBD(BD);
+			    
+			    
+				con = ConnectionFactory.getConnection(BD);
 				
 				stm = con.prepareStatement(sql);
 				stm.executeUpdate(usarBD);
@@ -148,20 +157,21 @@ public class Tabela_Actualizar_SQL {
 				 ++controle; 
 				 if((conteudo.equalsIgnoreCase("")||(conteudo==null))) {
 					 
-					 codigo=cID.recuperarCodigo(BD,"controle_turmas","id");
+					 codigo=cID.recuperarCodigo(BD,"Controle_Turmas","id");
 					 ++codigo;
 					 
 					 
 					 
-					 String sql="update controle_turmas set "+coluna+"='"+nomeDaTurma
+					 String sql="update Controle_Turmas set "+coluna+"='"+nomeDaTurma
 							 +"' where id="+controle;
 					 
 					 try {
 					        
 							
+						    Conexao conexao = new Conexao();
+						    conexao.setBD(BD);
 							
-							
-							con = ConnectionFactory.getConnection();
+							con = ConnectionFactory.getConnection(BD);
 							stm = con.prepareStatement(sql);
 							stm.executeUpdate(usarBD);
 							stm.executeUpdate();
@@ -190,7 +200,7 @@ public class Tabela_Actualizar_SQL {
 				 }
 			}
 			
-			 int controle2=cID.recuperarCodigo(BD, "controle_turmas", "id");
+			 int controle2=cID.recuperarCodigo(BD, "Controle_Turmas", "id");
 			 
 			 
 			  if(controle==controle2) {
@@ -201,11 +211,13 @@ public class Tabela_Actualizar_SQL {
 
 						 
 
-                        String sql2="insert into controle_turmas values(?,?,?,?,?)";
+                        String sql2="insert into Controle_Turmas values(?,?,?,?,?)";
+
+                        Conexao conexao = new Conexao();
+					    conexao.setBD(BD);
 
 
-
-						 con = ConnectionFactory.getConnection();
+						 con = ConnectionFactory.getConnection(BD);
 						 stm = con.prepareStatement(sql2);
 						 stm.executeUpdate(usarBD);
 
@@ -213,7 +225,7 @@ public class Tabela_Actualizar_SQL {
 
 
                            
-						 codigo=cID.recuperarCodigo(BD,"controle_turmas","id");
+						 codigo=cID.recuperarCodigo(BD,"Controle_Turmas","id");
 						 System.out.println("Codigo="+codigo);
 						 ++codigo;
                          
@@ -267,11 +279,11 @@ public class Tabela_Actualizar_SQL {
 				  
 			  }
 			  
-				  int qTurmas=  p.pesquisarUmConteudo_Numa_Linha_Int(BD, "controle_turmas", "qTurmas", "id", "", 1);
+				  int qTurmas=  p.pesquisarUmConteudo_Numa_Linha_Int(BD, "Controle_Turmas", "qTurmas", "id", "", 1);
 			      ++qTurmas;
 			      
 			      Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
-			      ta.actualizarColuna_Na_PrimeiraLinha(BD, "controle_turmas", "qTurmas", qTurmas);
+			      ta.actualizarColuna_Na_PrimeiraLinha(BD, "Controle_Turmas", "qTurmas", qTurmas);
 	}
 	
 	
@@ -305,9 +317,10 @@ public class Tabela_Actualizar_SQL {
 				try {
 				        
 					
+					Conexao conexao = new Conexao();
+				    conexao.setBD(BD);
 					
-					
-					con = ConnectionFactory.getConnection();
+					con = ConnectionFactory.getConnection(BD);
 					stm = con.prepareStatement(sql);
 					stm.executeUpdate(usarBD);
 					stm.executeUpdate();
@@ -348,9 +361,10 @@ public class Tabela_Actualizar_SQL {
 				try {
 				        
 					
+					Conexao conexao = new Conexao();
+				    conexao.setBD(BD);
 					
-					
-					con = ConnectionFactory.getConnection();
+					con = ConnectionFactory.getConnection(BD);
 					stm = con.prepareStatement(sql);
 					stm.executeUpdate(usarBD);
 					stm.executeUpdate();
@@ -390,10 +404,11 @@ public class Tabela_Actualizar_SQL {
 			
 			try {
 			        
+				Conexao conexao = new Conexao();
+			    conexao.setBD(BD);
 				
 				
-				
-				con = ConnectionFactory.getConnection();
+				con = ConnectionFactory.getConnection(BD);
 				stm = con.prepareStatement(sql);
 				stm.executeUpdate(usarBD);
 				stm.executeUpdate();
@@ -434,9 +449,10 @@ public class Tabela_Actualizar_SQL {
 		try {
 		        
 			
+			Conexao conexao = new Conexao();
+		    conexao.setBD(BD);
 			
-			
-			con = ConnectionFactory.getConnection();
+			con = ConnectionFactory.getConnection(BD);
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
 			stm.executeUpdate();
@@ -482,11 +498,12 @@ public class Tabela_Actualizar_SQL {
 					 String sql="update "+tabela+ " set "+coluna+"='"+conteudo+"' where id="+controle2;
 					 
 					 try {
-					        
+						   Conexao conexao = new Conexao();
+						    conexao.setBD(BD);
 							
 							
 							
-							con = ConnectionFactory.getConnection();
+							con = ConnectionFactory.getConnection(BD);
 							stm = con.prepareStatement(sql);
 							stm.executeUpdate(usarBD);
 							stm.executeUpdate();
@@ -521,10 +538,11 @@ public class Tabela_Actualizar_SQL {
 						 
 
 
+						 Conexao conexao = new Conexao();
+						    conexao.setBD(BD);
 
 
-
-						 con = ConnectionFactory.getConnection();
+						 con = ConnectionFactory.getConnection(BD);
 						 stm = con.prepareStatement(sql2);
 						 stm.executeUpdate(usarBD);
 
@@ -601,10 +619,11 @@ public class Tabela_Actualizar_SQL {
 					 
 					 try {
 					        
+						 Conexao conexao = new Conexao();
+						    conexao.setBD(BD);
 							
 							
-							
-							con = ConnectionFactory.getConnection();
+							con = ConnectionFactory.getConnection(BD);
 							stm = con.prepareStatement(sql);
 							stm.executeUpdate(usarBD);
 							stm.executeUpdate();
@@ -636,8 +655,10 @@ public class Tabela_Actualizar_SQL {
 					 
 					 try{
 
+						 Conexao conexao = new Conexao();
+						    conexao.setBD(BD);
 						
-						 con = ConnectionFactory.getConnection();
+						 con = ConnectionFactory.getConnection(BD);
 						 stm = con.prepareStatement(sql2);
 						 stm.executeUpdate(usarBD);
 
@@ -736,9 +757,10 @@ public class Tabela_Actualizar_SQL {
 						 try {
 						        
 								
+							 Conexao conexao = new Conexao();
+							    conexao.setBD(BD);
 								
-								
-								con = ConnectionFactory.getConnection();
+								con = ConnectionFactory.getConnection(BD);
 								stm = con.prepareStatement(sql);
 								stm.executeUpdate(usarBD);
 								stm.executeUpdate();
@@ -775,8 +797,10 @@ public class Tabela_Actualizar_SQL {
                             String sql2= "insert into "+tabela+" values("+trechoDoSQL+");";
                             System.out.println("SQL="+sql2);
 
+                            Conexao conexao = new Conexao();
+    					    conexao.setBD(BD);
 
-							 con = ConnectionFactory.getConnection();
+							 con = ConnectionFactory.getConnection(BD);
 							 stm = con.prepareStatement(sql2);
 							 stm.executeUpdate(usarBD);
 
@@ -886,10 +910,11 @@ public class Tabela_Actualizar_SQL {
 					 
 					 try {
 					        
+						 Conexao conexao = new Conexao();
+						    conexao.setBD(BD);
 							
 							
-							
-							con = ConnectionFactory.getConnection();
+							con = ConnectionFactory.getConnection(BD);
 							stm = con.prepareStatement(sql);
 							stm.executeUpdate(usarBD);
 							stm.executeUpdate();
@@ -926,8 +951,10 @@ public class Tabela_Actualizar_SQL {
                        String sql2= "insert into Escola_Financa values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
                        System.out.println("SQL="+sql2);
 
+                       Conexao conexao = new Conexao();
+					    conexao.setBD(BD);
 
-						 con = ConnectionFactory.getConnection();
+						 con = ConnectionFactory.getConnection(BD);
 						 stm = con.prepareStatement(sql2);
 						 stm.executeUpdate(usarBD);
 
@@ -1007,10 +1034,11 @@ public class Tabela_Actualizar_SQL {
 					 
 					 try {
 					        
+						 Conexao conexao = new Conexao();
+						    conexao.setBD(BD);
 							
 							
-							
-							con = ConnectionFactory.getConnection();
+							con = ConnectionFactory.getConnection(BD);
 							stm = con.prepareStatement(sql);
 							stm.executeUpdate(usarBD);
 							stm.executeUpdate();
@@ -1047,8 +1075,11 @@ public class Tabela_Actualizar_SQL {
                        String sql2= "insert into Escola_Financa values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
                        System.out.println("SQL="+sql2);
 
+                       
+                       Conexao conexao = new Conexao();
+					    conexao.setBD(BD);
 
-						 con = ConnectionFactory.getConnection();
+						 con = ConnectionFactory.getConnection(BD);
 						 stm = con.prepareStatement(sql2);
 						 stm.executeUpdate(usarBD);
 
@@ -1128,10 +1159,11 @@ public class Tabela_Actualizar_SQL {
 					 
 					 try {
 					        
+						 Conexao conexao = new Conexao();
+						    conexao.setBD(BD);
 							
 							
-							
-							con = ConnectionFactory.getConnection();
+							con = ConnectionFactory.getConnection(BD);
 							stm = con.prepareStatement(sql);
 							stm.executeUpdate(usarBD);
 							stm.executeUpdate();
@@ -1169,7 +1201,12 @@ public class Tabela_Actualizar_SQL {
                        System.out.println("SQL="+sql2);
 
 
-						 con = ConnectionFactory.getConnection();
+                       
+                       Conexao conexao = new Conexao();
+					    conexao.setBD(BD);
+					    
+					    
+						 con = ConnectionFactory.getConnection(BD);
 						 stm = con.prepareStatement(sql2);
 						 stm.executeUpdate(usarBD);
 
@@ -1252,10 +1289,12 @@ public class Tabela_Actualizar_SQL {
 					 
 					 try {
 					        
+						 Conexao conexao = new Conexao();
+						    conexao.setBD(BD);
 							
 							
 							
-							con = ConnectionFactory.getConnection();
+							con = ConnectionFactory.getConnection(BD);
 							stm = con.prepareStatement(sql);
 							stm.executeUpdate(usarBD);
 							stm.executeUpdate();
@@ -1293,7 +1332,12 @@ public class Tabela_Actualizar_SQL {
                        System.out.println("SQL="+sql2);
 
 
-						 con = ConnectionFactory.getConnection();
+                       
+                       Conexao conexao = new Conexao();
+					    conexao.setBD(BD);
+					    
+					    
+						 con = ConnectionFactory.getConnection(BD);
 						 stm = con.prepareStatement(sql2);
 						 stm.executeUpdate(usarBD);
 
@@ -1375,8 +1419,10 @@ public class Tabela_Actualizar_SQL {
 					        
 							
 							
+						 Conexao conexao = new Conexao();
+						    conexao.setBD(BD);
 							
-							con = ConnectionFactory.getConnection();
+							con = ConnectionFactory.getConnection(BD);
 							stm = con.prepareStatement(sql);
 							stm.executeUpdate(usarBD);
 							stm.executeUpdate();
@@ -1414,7 +1460,12 @@ public class Tabela_Actualizar_SQL {
                        System.out.println("SQL="+sql2);
 
 
-						 con = ConnectionFactory.getConnection();
+                       
+                       Conexao conexao = new Conexao();
+					    conexao.setBD(BD);
+					    
+					    
+						 con = ConnectionFactory.getConnection(BD);
 						 stm = con.prepareStatement(sql2);
 						 stm.executeUpdate(usarBD);
 
@@ -1489,9 +1540,11 @@ public class Tabela_Actualizar_SQL {
 					 try {
 					        
 							
+						 Conexao conexao = new Conexao();
+						    conexao.setBD(BD);
 							
 							
-							con = ConnectionFactory.getConnection();
+							con = ConnectionFactory.getConnection(BD);
 							stm = con.prepareStatement(sql);
 							stm.executeUpdate(usarBD);
 							stm.executeUpdate();
@@ -1530,10 +1583,11 @@ public class Tabela_Actualizar_SQL {
 						 
 						 try {
 						        
+							 Conexao conexao = new Conexao();
+							    conexao.setBD(BD);
 								
 								
-								
-								con = ConnectionFactory.getConnection();
+								con = ConnectionFactory.getConnection(BD);
 								stm = con.prepareStatement(sql);
 								stm.executeUpdate(usarBD);
 								stm.executeUpdate();
@@ -1573,9 +1627,10 @@ public class Tabela_Actualizar_SQL {
 							 try {
 							        
 									
+								 Conexao conexao = new Conexao();
+								    conexao.setBD(BD);
 									
-									
-									con = ConnectionFactory.getConnection();
+									con = ConnectionFactory.getConnection(BD);
 									stm = con.prepareStatement(sql);
 									stm.executeUpdate(usarBD);
 									stm.executeUpdate();
@@ -1617,10 +1672,11 @@ public class Tabela_Actualizar_SQL {
 								 
 								 try {
 								        
+									 Conexao conexao = new Conexao();
+									    conexao.setBD(BD);
 										
 										
-										
-										con = ConnectionFactory.getConnection();
+										con = ConnectionFactory.getConnection(BD);
 										stm = con.prepareStatement(sql);
 										stm.executeUpdate(usarBD);
 										stm.executeUpdate();
@@ -1663,8 +1719,10 @@ public class Tabela_Actualizar_SQL {
 									        
 											
 											
+										 Conexao conexao = new Conexao();
+										    conexao.setBD(BD);
 											
-											con = ConnectionFactory.getConnection();
+											con = ConnectionFactory.getConnection(BD);
 											stm = con.prepareStatement(sql);
 											stm.executeUpdate(usarBD);
 											stm.executeUpdate();
@@ -1706,9 +1764,11 @@ public class Tabela_Actualizar_SQL {
 										 try {
 										        
 												
+											 Conexao conexao = new Conexao();
+											    conexao.setBD(BD);
 												
 												
-												con = ConnectionFactory.getConnection();
+												con = ConnectionFactory.getConnection(BD);
 												stm = con.prepareStatement(sql);
 												stm.executeUpdate(usarBD);
 												stm.executeUpdate();
@@ -1752,9 +1812,10 @@ public class Tabela_Actualizar_SQL {
 											 try {
 											        
 													
+												 Conexao conexao = new Conexao();
+												    conexao.setBD(BD);
 													
-													
-													con = ConnectionFactory.getConnection();
+													con = ConnectionFactory.getConnection(BD);
 													stm = con.prepareStatement(sql);
 													stm.executeUpdate(usarBD);
 													stm.executeUpdate();
@@ -1796,9 +1857,10 @@ public class Tabela_Actualizar_SQL {
 												 try {
 												        
 														
+													 Conexao conexao = new Conexao();
+													    conexao.setBD(BD);
 														
-														
-														con = ConnectionFactory.getConnection();
+														con = ConnectionFactory.getConnection(BD);
 														stm = con.prepareStatement(sql);
 														stm.executeUpdate(usarBD);
 														stm.executeUpdate();
@@ -1839,10 +1901,11 @@ public class Tabela_Actualizar_SQL {
 													 
 													 try {
 													        
+														 Conexao conexao = new Conexao();
+														    conexao.setBD(BD);
 															
 															
-															
-															con = ConnectionFactory.getConnection();
+															con = ConnectionFactory.getConnection(BD);
 															stm = con.prepareStatement(sql);
 															stm.executeUpdate(usarBD);
 															stm.executeUpdate();
@@ -1883,10 +1946,11 @@ public class Tabela_Actualizar_SQL {
 														 
 														 try {
 														        
+															 Conexao conexao = new Conexao();
+															    conexao.setBD(BD);
 																
 																
-																
-																con = ConnectionFactory.getConnection();
+																con = ConnectionFactory.getConnection(BD);
 																stm = con.prepareStatement(sql);
 																stm.executeUpdate(usarBD);
 																stm.executeUpdate();
@@ -1950,9 +2014,10 @@ public class Tabela_Actualizar_SQL {
 						 try {
 						        
 								
+							 Conexao conexao = new Conexao();
+							    conexao.setBD(BD);
 								
-								
-								con = ConnectionFactory.getConnection();
+								con = ConnectionFactory.getConnection(BD);
 								stm = con.prepareStatement(sql);
 								stm.executeUpdate(usarBD);
 								stm.executeUpdate();
@@ -2007,9 +2072,11 @@ public class Tabela_Actualizar_SQL {
 							++nProc;
 							
 							
+							Conexao conexao = new Conexao();
+						    conexao.setBD(BD);
 
 
-							 con = ConnectionFactory.getConnection();
+							 con = ConnectionFactory.getConnection(BD);
 							 stm = con.prepareStatement(sql2);
 							 stm.executeUpdate(usarBD);
 
@@ -2083,7 +2150,11 @@ public class Tabela_Actualizar_SQL {
 		System.out.println(sql); 	
 
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+		    conexao.setBD(BD);
+		    
+			con = ConnectionFactory.getConnection(BD);
 
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
@@ -2126,7 +2197,11 @@ public class Tabela_Actualizar_SQL {
 		System.out.println(sql); 	
 
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+		    conexao.setBD(BD);
+		    
+			con = ConnectionFactory.getConnection(BD);
 
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
@@ -2175,7 +2250,11 @@ public class Tabela_Actualizar_SQL {
 		System.out.println(sql); 	
 
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+		    conexao.setBD(BD);
+		    
+			con = ConnectionFactory.getConnection(BD);
 
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
@@ -2224,7 +2303,11 @@ public class Tabela_Actualizar_SQL {
 		System.out.println(sql); 	
 
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+		    conexao.setBD(BD);
+		    
+			con = ConnectionFactory.getConnection(BD);
 
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
@@ -2278,7 +2361,12 @@ public class Tabela_Actualizar_SQL {
 		System.out.println(sql); 	
 
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+		    conexao.setBD(BD);
+		    
+		    
+			con = ConnectionFactory.getConnection(BD);
 
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);

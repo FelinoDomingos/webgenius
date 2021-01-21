@@ -8,11 +8,58 @@ public class Coordenador {
 	private boolean exame;
 	private boolean bloqueio;
 	private String curso;
+	private String bloqueiar;
+	private String desbloqueiar;
 	private int qProfs;
 	
 	
+	private boolean bloqueiarTodos;
+	private boolean desbloqueiarTodos;
 	
 	
+	
+
+
+	public String getBloqueiar() {
+		return bloqueiar;
+	}
+
+
+	public void setBloqueiar(String bloqueiar) {
+		this.bloqueiar = bloqueiar;
+	}
+
+
+	public String getDesbloqueiar() {
+		return desbloqueiar;
+	}
+
+
+	public void setDesbloqueiar(String desbloqueiar) {
+		this.desbloqueiar = desbloqueiar;
+	}
+
+
+	public boolean isBloqueiarTodos() {
+		return bloqueiarTodos;
+	}
+
+
+	public void setBloqueiarTodos(boolean bloqueiarTodos) {
+		this.bloqueiarTodos = bloqueiarTodos;
+	}
+
+
+	public boolean isDesbloqueiarTodos() {
+		return desbloqueiarTodos;
+	}
+
+
+	public void setDesbloqueiarTodos(boolean desbloqueiarTodos) {
+		this.desbloqueiarTodos = desbloqueiarTodos;
+	}
+
+
 	public String getCurso() {
 		return curso;
 	}

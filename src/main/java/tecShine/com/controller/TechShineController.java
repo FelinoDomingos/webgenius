@@ -4,15 +4,22 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.servlet.ServletOutputStream;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Controller;
+import org.springframework.stereotype.Service;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
@@ -23,21 +30,21 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 
 import tecShine.com.Erros.Validar;
-import tecShine.com.JDBC.BD_Criar_SQL;
 import tecShine.com.JDBC.Controle_ID_SQL;
 import tecShine.com.JDBC.EliminarLinha_SQL;
 import tecShine.com.JDBC.Pesquisar_SQL;
 import tecShine.com.JDBC.Salvar_SQL;
 import tecShine.com.JDBC.Tabela_Actualizar_SQL;
 import tecShine.com.JDBC.Tabelas_Criar_SQL;
+import tecShine.com.OutrasOperacoes.Operacoes;
 import tecShine.com.dao.Escola_Integrantes;
 import tecShine.com.dao.Login;
 import tecShine.com.dao.Verificar_Login;
-import tecShine.com.model.Agenda;
 import tecShine.com.model.Aluno;
 import tecShine.com.model.AlunoNotas;
 import tecShine.com.model.Coordenador;
 import tecShine.com.model.Curso;
+import tecShine.com.model.DadosAdicionais;
 import tecShine.com.model.Desciplina;
 import tecShine.com.model.Documentos;
 import tecShine.com.model.FaltaEEstagio;
@@ -56,14 +63,19 @@ import tecShine.com.model.Propina;
 import tecShine.com.model.Propina_E_Multa;
 import tecShine.com.model.Recuperando_Dados;
 import tecShine.com.model.RecuperarSenha;
-import tecShine.com.model.Relatorio;
 import tecShine.com.model.Salario;
 import tecShine.com.model.Turma;
+import tecShine.com.model.Usuario;
+import tecShine.com.model.Usuario2;
 import tecShine.com.model.Validacoes;
 import tecShine.com.model.Venda;
 import tecShine.com.model.WG.Escola;
 import tecShine.com.model.WG.PCA_WG;
 import tecShine.com.relatorios.ImprimirRelatorio;
+import tecShine.com.repository.AlunoRepository;
+import tecShine.com.repository.LoginRepository;
+import tecShine.com.repository.SecretariaRepository;
+import tecShine.com.sessao.SessaoActual;
 
 @Controller
 
@@ -73,8 +85,8 @@ import tecShine.com.relatorios.ImprimirRelatorio;
  *         controlat todas as requisições do projecto
  *
  */
-
-public class TechShineController {
+@Service
+public class TechShineController implements LoginRepository,AlunoRepository,SecretariaRepository{
 
 	// ************************
 	// Site da WebGenius
@@ -94,7 +106,7 @@ public class TechShineController {
 	private Escola_Integrantes acesso = new Escola_Integrantes();
 	private String request = null;
 	private int contador = 0;
-	private String mensagem;
+	private String mensagem="";
 	private Verificar_Login aceder = new Verificar_Login();
 
 	private PCA_WG pca = new PCA_WG();
@@ -108,9 +120,9 @@ public class TechShineController {
 	public String configurarEscola;
 
 	private String usuario;
-	public String bi;
+	public String bi=null;
 	private Fase1 fase1;
-	public String BD;
+	public String BD= null;
 	public int id;
 	private String nomeDoCurso;
 
@@ -120,202 +132,206 @@ public class TechShineController {
 	private Funcionario func = new Funcionario();
 	private String quem_E_O_func;
 	private Professor prof2;
-	private Minhas_Financas alunoFinanca;
+	private Minhas_Financas alunoFinanca=null;
 	private String cursoAluno;
 	private String curso2;
 	private String turmaAluno;
 	private String disciplina;
 	private String nivel;
+	private String turno;
 	private ArrayList<String> conteudos2;
 	private ArrayList<String> conteudos3 = new ArrayList<>();
 	private String nomeCompleto;
 	private String turnoAluno;
 	private String retorno;
+	private String sistema_Cadastrado="N";
+	private ArrayList<String> turmas_Disponiveis;
+	private ArrayList<String> turmas_Indisponiveis;
+	private static final Map<String, Usuario> instancias = new HashMap<>();
+	
+	
+	
+	private String repetir;
+	
+	private String biFunc;
+	
+	private String professor;
+	
+	Usuario usuario2 = null;
+	
+	
 
-	@GetMapping({ "/login", "/" })
-	public String login() {
-
-		System.out.println("Estado: " + this.estado);
-		if (estado == 0) {
-
-			this.pagina = "TechShine/login";
-			return this.pagina;
-		} else {
-			return this.pagina;
-		}
+	
+	
+	
+	
+	@Override
+	@Async
+	
+	public Usuario2 login2( LoginIntegrantes login, HttpServletRequest request,
+			HttpServletResponse response){
 		
+		
+		//sc.setSessionTrackingModes(EnumSet.of(SessionTrackingMode.COOKIE));
+		
+		
+		
+		//HttpSession session = request().getSession();
 
-	}
-
-	@PostMapping("/login")
-	public String login_post(Model model, LoginIntegrantes login, HttpServletRequest request) {
-
-		String pagina;
-		String senha2;
-		String usuario;
-
-		senha2 = login.getSenha();
-		usuario = login.getUsuario();
-		this.usuario = usuario;
-
-		System.out.println("Usuario: " + usuario);
-		System.out.println("senha: " + senha2);
-
-		Pesquisar_SQL p = new Pesquisar_SQL();
-
+		String pagina = null;
+		String senha = null;
+		String nome = null;
 		boolean podeEntrar = false;
-
+		String quem_E_O_func = null;
+		String configurarEscola =null;
+		String configurarNome = null;
+		String BD = null;
+		String bi = null;
+		String turmaAluno = null;
+		int id = 0;
+		
+		Usuario2 usuario2 = new Usuario2();
+        Verificar_Login v = new Verificar_Login();
+		Salvar_SQL s = new Salvar_SQL();
+		Pesquisar_SQL p = new Pesquisar_SQL();
+		
+		
+		try {
+			Thread.sleep(5000);
+		
 		
 
+		senha = login.getSenha();
+		nome = login.getUsuario();
+  
+		System.out.println("Usuario: " + nome);
+		System.out.println("senha: " + senha);
+
+	
 		
-		if((usuario.equalsIgnoreCase("1996"))&&
-				(senha2.equalsIgnoreCase("1996"))) {
+		if((nome.equalsIgnoreCase("1996"))&&
+				(senha.equalsIgnoreCase("1996"))) {
 			
 			
-			    BD_Criar_SQL bd = new BD_Criar_SQL();
-			    Salvar_SQL s = new Salvar_SQL();
-			   // bd.criarBaseDeDados("wg");
-			    
-			    Tabelas_Criar_SQL c= new Tabelas_Criar_SQL();
-			   // c.criarTabelaPCA_WG("wg", "PCA");
-			     
-			    
-			    
-			   // c.criarTabelaEscolas_WG();
 			
 			podeEntrar = true;
 		}else {
-			
-			ArrayList<String> retorno = aceder.existeNaWG(senha2, usuario);
-			
-			if (retorno.size() == 0) {
-
-			} else {
-
-				if (retorno.size() > 3) {
-
-					this.id = Integer.parseInt(retorno.get(0));
-					this.bi = retorno.get(1);
-					this.BD = retorno.get(2);
-					this.turmaAluno = retorno.get(3);
-
-					System.out.println("BI Admin: " + this.bi);
-					System.out.println("id: " + this.id);
-					System.out.println("BD : " + this.BD);
-					System.out.println("Turma Aluno : " + turmaAluno);
-				} else {
-
-					this.id = Integer.parseInt(retorno.get(0));
-					this.bi = retorno.get(1);
-					this.BD = retorno.get(2);
-
-					System.out.println("BI Admin: " + this.bi);
-					System.out.println("id: " + this.id);
-					System.out.println("BD : " + this.BD);
-
-				}
-
+         
+			ArrayList<String> retorno = aceder.existeNaWG(senha, nome);
+			if (retorno.size() > 0) {
+				
+			    id = Integer.parseInt(retorno.get(0));
+				bi = retorno.get(1);
+				BD = retorno.get(2);
+		        turmaAluno = retorno.get(3);
+		        
+				
+				usuario2.setId(id);
+				usuario2.setBi(bi);
+				usuario2.setBD(BD);
+				usuario2.setTurma(turmaAluno);
+				
+				
+				
 				podeEntrar = true;
-
 			}
-			
-			
+		
 		}
 		
 
 		if (podeEntrar) {
-
-			Verificar_Login v = new Verificar_Login();
-
-			this.senha = senha2;
-
+			
+		
 			System.out.println("Senha Geral: " + senha);
-			if (usuario.equalsIgnoreCase("PCA")||
-					(usuario.endsWith("PCA"))) {
+			if (nome.equalsIgnoreCase("PCA")||
+					(nome.endsWith("PCA"))) {
 
+				quem_E_O_func = "pca";
+				
+				
 				estado = 1;
 
-				String sistema_Cadastrado = p.pesquisarUmConteudo_Numa_Linha_String("wg", "escolas", "sisCadatrado",
-						"bi", this.bi, 0);
+				 sistema_Cadastrado = p.pesquisarUmConteudo_Numa_Linha_String("webgenius", "escolas", "sisCadatrado",
+						"bi", bi, 0);
 
 				if (sistema_Cadastrado.equalsIgnoreCase("S")) {
 
-					configurarNome = p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "pca_" + this.BD, "nome", "bi",
-							this.bi, 0);
-                    this.nomeCompleto = configurarNome;
+					configurarNome = p.pesquisarUmConteudo_Numa_Linha_String(BD, "pca_" + BD, "nome", "bi",
+							bi, 0);
 					
 					if(configurarNome.contains(" ")) {
 						
 						configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
 					}
 					
+					
 
-					configurarEscola = p.pesquisarTudoEmString(this.BD, "pca_" + this.BD, "instituicao").get(0);
+					configurarEscola = p.pesquisarTudoEmString(BD, "pca_" + BD, "instituicao").get(0);
 
-					int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-					int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-					int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-					int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin",
-							this.bi, 0);
-
-					model.addAttribute("qalunos", qalunos);
-					model.addAttribute("qfunc", qfunc);
-					model.addAttribute("qCurso", QCurso);
-					model.addAttribute("renda", renda + ",00 Kz");
-
-					System.out.println("Nome: " + configurarNome);
-					System.out.println("Escola: " + configurarEscola);
-
-					model.addAttribute("nome", configurarNome);
-					model.addAttribute("escola", configurarEscola);
-
-					this.quem_E_O_func = "pca";
-					return "TechShine/Admin/inicio";
+					if(configurarEscola.contains(" ")) {
+						
+						configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
+					}
+					
+					
+					
+					pagina = "redirect:admin";  
+					usuario2.setPagina(pagina);
 
 				} else {
 
 					
-					this.quem_E_O_func="pca";
-					System.out.println("this.quem_E_O_func: "+this.quem_E_O_func);
+					quem_E_O_func="pca";
+					System.out.println("quem_E_O_func: "+quem_E_O_func);
 					pagina = entrarNoSistema.quemEstaAFazerLogin(senha, usuario);
+					usuario2.setPagina(pagina);
 					this.pagina = pagina;
 
 				}
 
 				System.out.println("Entrou No Admin");
-			} else if (usuario.endsWith("AL")) {
+			} else if (nome.endsWith("AL")) {
 
+				quem_E_O_func = turmaAluno;
+				estado = 1;
+
+				configurarNome = p.pesquisarUmConteudo_Numa_Linha_String(BD, turmaAluno, "Alunos", "id", "",
+						id);
+				
+				this.nomeCompleto = configurarNome;
+
+				if(configurarNome.contains(" ")) {
+					
+					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
+				}
+
+				configurarEscola = p.pesquisarTudoEmString(BD, "pca_" + BD, "instituicao").get(0);
+ 
+				if(configurarEscola.contains(" ")) {
+					
+					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
+				}
+				
+			
+				
 				pagina = "redirect:Aluno";
+				usuario2.setPagina(pagina);
 				this.pagina = pagina;
-				estado = 1;
 
-				configurarNome = p.pesquisarUmConteudo_Numa_Linha_String(this.BD, this.turmaAluno, "Alunos", "id", "",
-						this.id);
 				
-				this.nomeCompleto = configurarNome;
-
-				if(configurarNome.contains(" ")) {
-					
-					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
-				}
-
-				configurarEscola = p.pesquisarTudoEmString(this.BD, "pca_" + this.BD, "instituicao").get(0);
-
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				// this.model.addAttribute("nome", this.Admin);
-				this.quem_E_O_func = this.turmaAluno;
 				System.out.println("Entrou No Aluno");
+				
+				
+				
 
-			} else if (usuario.contains("Coord")) {
+			} else if (nome.contains("Coord")) {
 
-				pagina = "redirect:coord";
-				this.pagina = pagina;
+				quem_E_O_func = "Coord";
+				//session.setAttribute("integrante", quem_E_O_func);
 				estado = 1;
 
-				configurarNome = p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "Coord_DadosPessoais", "nomes", "bi",
-						this.bi, 0);
+				configurarNome = p.pesquisarUmConteudo_Numa_Linha_String(BD, "Coord_DadosPessoais", "nomes", "bi",
+						bi, 0);
 				
 				this.nomeCompleto = configurarNome;
 				if(configurarNome.contains(" ")) {
@@ -323,44 +339,99 @@ public class TechShineController {
 					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
 				}
 
-				configurarEscola = p.pesquisarTudoEmString(this.BD, "pca_" + this.BD, "instituicao").get(0);
+				configurarEscola = p.pesquisarTudoEmString(BD, "pca_" + BD, "instituicao").get(0);
 
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-				this.quem_E_O_func = "coord";
+				if(configurarEscola.contains(" ")) {
+					
+					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
+				}
+				
+				
+				
+				pagina = "redirect:coord"; 
+				usuario2.setPagina(pagina);
+				this.pagina = pagina;
+				
 
 				System.out.println("Entrou No Coord");
-			} else if (usuario.contains("Secretaria")) {
+				
+				
+				
+			} else if (nome.contains("Secretaria")) {
+
+				quem_E_O_func = "Secretaria";
+
+				configurarNome = p.pesquisarUmConteudo_Numa_Linha_String(BD, "Secretaria_DadosPessoais", "nomes",
+						"bi", bi, 0);
+				
+				this.nomeCompleto = configurarNome;
+				if(configurarNome.contains(" ")) {
+					
+					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
+				}
+
+				configurarEscola = p.pesquisarTudoEmString(BD, "pca_" + BD, "instituicao").get(0);
+
+				if(configurarEscola.contains(" ")) {
+					
+					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
+				}
+				
+				
+				
+
+
+				
 
 				pagina = "redirect:Secretaria";
+				usuario2.setPagina(pagina);
 				this.pagina = pagina;
-				estado = 1;
-
-				configurarNome = p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "Secretaria_DadosPessoais", "nomes",
-						"bi", this.bi, 0);
-				
-				this.nomeCompleto = configurarNome;
-				if(configurarNome.contains(" ")) {
-					
-					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
-				}
-
-				configurarEscola = p.pesquisarTudoEmString(this.BD, "pca_" + this.BD, "instituicao").get(0);
-
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
 
 				System.out.println("Entrou No Secretaria");
-				this.quem_E_O_func = "secretaria";
+				
 
-			} else if (usuario.contains("Tesouraria")) {
+			} else if (nome.contains("Tesouraria")) {
+				
+				quem_E_O_func = "Tesouraria";
+				estado = 1;
+
+				configurarNome = p.pesquisarUmConteudo_Numa_Linha_String(BD, "Tesouraria_DadosPessoais", "nomes",
+						"bi", bi, 0);
+				
+				this.nomeCompleto = configurarNome;
+
+				if(configurarNome.contains(" ")) {
+					
+					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
+				}
+
+				configurarEscola = p.pesquisarTudoEmString(BD, "pca_" + BD, "instituicao").get(0);
+
+				if(configurarEscola.contains(" ")) {
+					
+					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
+				}
+				
+				
+				
 
 				pagina = "redirect:Tesouraria";
+				usuario2.setPagina(pagina);
 				this.pagina = pagina;
+
+				
+				System.out.println("Entrou No Tesouraria");
+				
+				
+				
+			} else if (nome.contains("Professor")) {
+
+				quem_E_O_func = "Professor";
 				estado = 1;
 
-				configurarNome = p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "Tesouraria_DadosPessoais", "nomes",
-						"bi", this.bi, 0);
+				configurarNome = p.pesquisarUmConteudo_Numa_Linha_String(BD, "Professor_DadosPessoais", "nomes",
+						"bi", bi, 0);
+				
 				
 				this.nomeCompleto = configurarNome;
 
@@ -369,45 +440,36 @@ public class TechShineController {
 					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
 				}
 
-				configurarEscola = p.pesquisarTudoEmString(this.BD, "pca_" + this.BD, "instituicao").get(0);
+				configurarEscola = p.pesquisarTudoEmString(BD, "pca_" + BD, "instituicao").get(0);
 
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				this.quem_E_O_func = "tesouraria";
-				System.out.println("Entrou No Tesouraria");
-			} else if (usuario.contains("Professor")) {
+				if(configurarEscola.contains(" ")) {
+					
+					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
+				}
+				
+				
 
 				pagina = "redirect:Professor";
+				usuario2.setPagina(pagina);
 				this.pagina = pagina;
-				estado = 1;
 
-				configurarNome = p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "Professor_DadosPessoais", "nomes",
-						"bi", this.bi, 0);
 				
-				
-				this.nomeCompleto = configurarNome;
-
-				if(configurarNome.contains(" ")) {
-					
-					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
-				}
-
-				configurarEscola = p.pesquisarTudoEmString(this.BD, "pca_" + this.BD, "instituicao").get(0);
-
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				this.quem_E_O_func = "professor";
 				System.out.println("Entrou No Professor");
-			} else if (usuario.contains("DP")) {
+				
+				
+				
+			} else if (nome.contains("DP")) {
 
-				pagina = entrarNoSistema.quemEstaAFazerLogin(senha, this.usuario);
-				this.pagina = pagina;
+				
+				//pagina = entrarNoSistema.quemEstaAFazerLogin(senha, this.usuario);
+				//this.pagina = pagina;
+				
+				quem_E_O_func = "DP";
+				//session.setAttribute("integrante", quem_E_O_func);
 				estado = 1;
 
-				configurarNome = p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "DP_DadosPessoais", "nomes", "bi",
-						this.bi, 0);
+				configurarNome = p.pesquisarUmConteudo_Numa_Linha_String(BD, "DP_DadosPessoais", "nomes", "bi",
+						bi, 0);
 				
 				this.nomeCompleto = configurarNome;
 
@@ -416,23 +478,31 @@ public class TechShineController {
 					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
 				}
 
-				configurarEscola = p.pesquisarTudoEmString(this.BD, "pca_" + this.BD, "instituicao").get(0);
+				configurarEscola = p.pesquisarTudoEmString(BD, "pca_" + BD, "instituicao").get(0);
 
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
+				if(configurarEscola.contains(" ")) {
+					
+					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
+				}
+				
+				
+				
 
-				this.quem_E_O_func = "DP";
+				pagina = "redirect:admin";
+				usuario2.setPagina(pagina);
+				this.pagina = pagina;
 
-				this.pagina = "redirect:admin";
+				
+
 				System.out.println("Entrou No DP");
-			} else if (usuario.contains("DA")) {
+			} else if (nome.contains("DA")) {
 
-				pagina = entrarNoSistema.quemEstaAFazerLogin(senha, this.usuario);
-				this.pagina = pagina;
-				estado = 1;
+				
+				
+				quem_E_O_func = "DA";
 
-				configurarNome = p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "DA_DadosPessoais", "nomes", "bi",
-						this.bi, 0);
+				configurarNome = p.pesquisarUmConteudo_Numa_Linha_String(BD, "DA_DadosPessoais", "nomes", "bi",
+						bi, 0);
 				
 				this.nomeCompleto = configurarNome;
 
@@ -441,23 +511,35 @@ public class TechShineController {
 					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
 				}
 
-				configurarEscola = p.pesquisarTudoEmString(this.BD, "pca_" + this.BD, "instituicao").get(0);
+				configurarEscola = p.pesquisarTudoEmString(BD, "pca_" + BD, "instituicao").get(0);
 
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
+				if(configurarEscola.contains(" ")) {
+					
+					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
+				}
+				
+				
+				
+				
+				pagina = "redirect:admin";
+				usuario2.setPagina(pagina);
 
-				this.quem_E_O_func = "DA";
+				this.pagina = pagina;
 
-				this.pagina = "redirect:admin";
+				
+
 				System.out.println("Entrou No DA");
-			} else if (usuario.contains("DG")) {
+			} else if (nome.contains("DG")) {
 
 				// pagina= entrarNoSistema.quemEstaAFazerLogin(senha,this.usuario);
 
+				
+				quem_E_O_func = "DG";
+				//session.setAttribute("integrante", quem_E_O_func);
 				estado = 1;
 
-				configurarNome = p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "DG_DadosPessoais", "nomes", "bi",
-						this.bi, 0);
+				configurarNome = p.pesquisarUmConteudo_Numa_Linha_String(BD, "DG_DadosPessoais", "nomes", "bi",
+						bi, 0);
 				
 				this.nomeCompleto = configurarNome;
 
@@ -466,54 +548,72 @@ public class TechShineController {
 					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
 				}
 
-				configurarEscola = p.pesquisarTudoEmString(this.BD, "pca_" + this.BD, "instituicao").get(0);
+				configurarEscola = p.pesquisarTudoEmString(BD, "pca_" + BD, "instituicao").get(0);
 
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
+				if(configurarEscola.contains(" ")) {
+					
+					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
+				}
+				
+				
+				
+				
+				pagina = "redirect:admin";
+				usuario2.setPagina(pagina);
 
-				this.quem_E_O_func = "DG";
+
+				this.pagina = pagina;
+
+				
 				System.out.println("Entrou No DG");
-				this.pagina = "redirect:admin";
-			} else if ((usuario.contains("clide")) || (usuario.contains("elino")) || (usuario.contains("ander"))) {
+				
+				
+				
+				
+			} else if ((nome.contains("clide")) || (nome.contains("elino")) || (nome.contains("ander"))) {
 
 				System.out.println("Entrou No WebGenius");
 				
 				pagina="WebGnius/WG/inicio";
+				usuario2.setPagina(pagina);
 				this.pagina = pagina;
 
 				estado = 1;
 
-				configurarNome = p.pesquisarUmConteudo_Numa_Linha_String("wg", "pca", "usuario", "bi", this.bi, 0);
+				configurarNome = p.pesquisarUmConteudo_Numa_Linha_String("wg", "pca", "usuario", "bi", bi, 0);
 
 				if(configurarNome.contains(" ")) {
 					
 					configurarNome = v.usuarioAcesso(v.acessoAWG(configurarNome));
 				}
-				model.addAttribute("pca", configurarNome);
-				model.addAttribute("escola", "WebGenius");
-
-			}else if((usuario.equalsIgnoreCase("1996"))&&
-					(senha2.equalsIgnoreCase("1996"))) {
+				
+				
+				
+			}else if((nome.equalsIgnoreCase("1996"))&&
+					(senha.equalsIgnoreCase("1996"))) {
 
 				System.out.println("Entrou No WebGenius");
 				pagina="WebGnius/WG/inicio";
+				usuario2.setPagina(pagina);
 				this.pagina = pagina;
 
-				estado = 1;
-
-
-				model.addAttribute("pca", "Euclides");
-				model.addAttribute("escola", "WebGenius");
+				
 
 			}
 
+		        usuario2.setEscola(configurarEscola);
+				usuario2.setIntegrante(quem_E_O_func);
+				usuario2.setNome(configurarNome);
+				usuario2.setSenha(senha);
+                usuario2.setMensagem(this.mensagem);
+                usuario2.setExisteUsuario(podeEntrar);
+		
 		}  else {	
 			
 
-			pagina = "TechShine/login";
-			this.pagina = pagina;
+			pagina = "redirect:login";
+			usuario2.setPagina(pagina);
 			senha = " ";
-			request = null;
 			
 			if(p.mensagem2!=null) {
 				
@@ -524,28 +624,46 @@ public class TechShineController {
 			}
 
 			
-			model.addAttribute("mensagem", this.mensagem);
+			
+			this.mensagem="";
 			System.out.println("Entrou Em Nenhum Lado");
 		}
 
-		return this.pagina;
-	}
+		
+		
+		
+		
 
-	@GetMapping("/Recuperar-Dados")
+				
+                
+            // Aqui vao ser Gravado o Ususario na Sessao 
+		
+		
+		   
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		 return usuario2;
+	}
+	
+	@GetMapping({"/Recuperar-Dados","/webgenius/Recuperar-Dados"})
 	public String recuperar_Dados() {
 
+		this.repetir="Recuperar-Dados";
 		return "TechShine/recuperarDados";
 
 	}
-
-	@GetMapping("/Recuperando-Dados")
+	
+	@GetMapping({"/Recuperando-Dados","/webgenius/Recuperando-Dados"})
 	public String Recuperando_Dados() {
 
+		this.repetir="Recuperando-Dados";
 		return "TechShine/recuperarDados";
 
 	}
-
-	@PostMapping("/Recuperando-Dados")
+	
+	@PostMapping( {"/webgenius/Recuperando-Dados","/Recuperando-Dados"})
 	public String Recuperando_Dados(Recuperando_Dados recuperar) {
 
 		String pagina = null;
@@ -568,37 +686,120 @@ public class TechShineController {
 	 * ===================================== PRINCIPIO DOS MÉTODOS DA WEBGENIUS
 	 * =====================================
 	 */
-
+	
 	// Cadastrando Empresas na WebGenius
 
-	@GetMapping({ "/Cadastrar-Sistema-1", "/Cadastrar-Sistema-2", "/Cadastrar-Sistema-3", "/Cadastrar-Sistema-4",
+	@GetMapping({ "/Cadastrar-Sistema-1","/webgenius/Cadastrar-Sistema-1", "/Cadastrar-Sistema-2", "Cadastrar-Sistema-3", "/Cadastrar-Sistema-4",
 			"/Cadastrar-Sistema-5a", "/Cadastrar-Sistema-5b", "/Cadastrar-Sistema-6", "/Cadastrar-Sistema-7",
-			"/Cadastrar-Sistema-8", "/Cadastrar-Sistema-9", "/Cadastrar-Sistema-9a", "/Cadastrar-Sistema-9b",
-			"/Cadastrar-Sistema-9c", "/Cadastrar-Sistema-9d", "/Cadastrar-Sistema-9e", "/Cadastrar-Sistema-9f",
-			"/Cadastrar-Sistema-10", "/WgContacts", "/Admin-Minha-Seguranca", "/Admin-Alterar-Salario",
+			"/Cadastrar-Sistema-8", "/Cadastrar-Sistema-9a", "/WgContacts", "/Admin-Minha-Seguranca", "/Admin-Alterar-Salario",
 			"/Admin-Alterar-Propina", "Admin-Alterar-MC", "/Admin-Alterar-Doc", "/Admin-Alterar-Vendas",
 			"/Admin-Alterar-FE", "/Admin-Ver-PM", "/Admin-Ver-MC", "/Admin-Ver-Salario", "/Admin-Ver-Doc",
-			"/Admin-Ver-Materias", "/Admin-Ver-FE", "/Admin-Cadastro", "/Cadastrar-Sistema-6-1" })
+			"/Admin-Ver-Materias", "/Admin-Ver-FE", "/Admin-Cadastro", "/Cadastrar-Sistema-6-1" 
+			
+			,"/webgenius/Cadastrar-Sistema-2", "/webgenius/Cadastrar-Sistema-3", "/webgenius/Cadastrar-Sistema-4",
+			"/webgenius/Cadastrar-Sistema-5a", "/webgenius/Cadastrar-Sistema-5b",
+			"/webgenius/Cadastrar-Sistema-8", "/webgenius/Cadastrar-Sistema-9a", "/webgenius/WgContacts", "/webgenius/Admin-Minha-Seguranca", "/webgenius/Admin-Alterar-Salario",
+			"/webgenius/Admin-Alterar-Propina", "/webgeniusAdmin-Alterar-MC", "/webgenius/Admin-Alterar-Doc", "/webgenius/Admin-Alterar-Vendas",
+			"/webgenius/Admin-Alterar-FE", "/webgenius/Admin-Ver-PM", "/webgenius/Admin-Ver-MC", "/webgenius/Admin-Ver-Salario", "/webgenius/Admin-Ver-Doc",
+			"/webgenius/Admin-Ver-Materias", "/webgenius/webgenius/Admin-Ver-FE", "/webgenius/Admin-Cadastro", "/webgenius/Cadastrar-Sistema-6-1"  })
 
+	
+	
+	
 	public String CadasdrarEmpresa(HttpServletRequest request, Model model) {
+		
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
 		String nomeDaPagina = null;
 		String requisicao;
 
 		requisicao = request.getRequestURI();
+		
+		System.out.println("REQUISICAO: "+ requisicao);
 		Salvar_SQL s = new Salvar_SQL();
 		Pesquisar_SQL p = new Pesquisar_SQL();
-		ArrayList<Curso> cursos = p.Listar_Cursos(this.BD);
-		ArrayList<String> tCursos = new ArrayList<>();
+		
 		ArrayList<String> funcionarios = p.listarFuncionarios();
+		
+		
+		ArrayList<Curso> cursos = p.Listar_Cursos(BD);
+		ArrayList<String> tCursos = new ArrayList<>();
 
 		for (Curso c : cursos) {
 
 			tCursos.add(c.getNome());
 		}
-		ArrayList<String> niveis = p.pesquisarTudoEmString(this.BD, "infoescola", "niveis");
-		if (requisicao.equalsIgnoreCase("/Cadastrar-Sistema-1")) {
+		
+		ArrayList<String> niveis = p.pesquisarTudoEmString(BD, "infoescola", "niveis");
+		if (requisicao.contains("/Cadastrar-Sistema-1")) {
 			
-			
+			this.repetir="Cadastrar-Sistema-1";
 
 			if (estado < 0) {
 
@@ -613,7 +814,7 @@ public class TechShineController {
 				}
 				if (entrarNoSistema.podeAbrirAPagina(senha)) {
 					
-					this.quem_E_O_func="pca";
+					quem_E_O_func="pca";
 
 					// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
@@ -637,7 +838,9 @@ public class TechShineController {
 				}
 			}
 
-		} else if (requisicao.equalsIgnoreCase("/Cadastrar-Sistema-2")) {
+		} else if (requisicao.contains("/Cadastrar-Sistema-2")) {
+			
+			this.repetir="Cadastrar-Sistema-2";
 
 			if (estado < 0) {
 
@@ -673,7 +876,9 @@ public class TechShineController {
 
 			}
 
-		} else if (requisicao.equalsIgnoreCase("/Cadastrar-Sistema-3")) {
+		} else if (requisicao.contains("/Cadastrar-Sistema-3")) {
+			
+			this.repetir="Cadastrar-Sistema-3";
 
 			if (estado < 0) {
 
@@ -696,7 +901,7 @@ public class TechShineController {
 						model.addAttribute("nome", configurarNome);
 						model.addAttribute("escola", configurarEscola);
 
-						this.quem_E_O_func="pca";
+						quem_E_O_func="pca";
 						nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase3";
 						this.pagina = nomeDaPagina;
 						++estado;
@@ -712,35 +917,39 @@ public class TechShineController {
 
 			}
 
-		} else if (requisicao.equalsIgnoreCase("/Cadastrar-Sistema-5a")) {
+		} else if (requisicao.contains("/Cadastrar-Sistema-5a")) {
+			
+			this.repetir="Cadastrar-Sistema-5a";
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
+				
+				
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
 				int renda;
 				int despeza = 0;
-				String mes = s.mesActual(this.BD);
+				String mes = s.mesActual(BD);
 
-				if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				if (quem_E_O_func.equalsIgnoreCase("pca")) {
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 							0);
 
-					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 					if (despezas.size() > 0) {
 
-						despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+						despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 					}
 					model.addAttribute("renda", renda + ",00 Kz");
 
 				} else {
 
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-							"", this.id);
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+							"", id);
 
 					if (renda == 0) {
 						model.addAttribute("renda", "Irregular");
@@ -769,36 +978,38 @@ public class TechShineController {
 				this.pagina = nomeDaPagina;
 			}
 
-		} else if (requisicao.equalsIgnoreCase("/Cadastrar-Sistema-5b")) {
+		} else if (requisicao.contains("/Cadastrar-Sistema-5b")) {
+			
+			this.repetir="Cadastrar-Sistema-5b";
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
 
 				int renda;
 				int despeza = 0;
-				String mes = s.mesActual(this.BD);
+				String mes = s.mesActual(BD);
 
-				if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				if (quem_E_O_func.equalsIgnoreCase("pca")) {
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 							0);
 
-					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 					if (despezas.size() > 0) {
 
-						despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+						despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 					}
 
 					model.addAttribute("renda", renda + ",00 Kz");
 				} else {
 
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-							"", this.id);
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+							"", id);
 
 					if (renda == 0) {
 						model.addAttribute("renda", "Irregular");
@@ -817,12 +1028,12 @@ public class TechShineController {
 				model.addAttribute("niveis", niveis);
 				model.addAttribute("cursos", tCursos);
 
-				if ((this.quem_E_O_func.equalsIgnoreCase("DA")) || (this.quem_E_O_func.equalsIgnoreCase("DP"))) {
+				if ((quem_E_O_func.equalsIgnoreCase("DA")) || (quem_E_O_func.equalsIgnoreCase("DP"))) {
 					funcionarios.remove("DG");
 					funcionarios.remove("DA");
 					funcionarios.remove("DP");
 
-				} else if (this.quem_E_O_func.equalsIgnoreCase("DG")) {
+				} else if (quem_E_O_func.equalsIgnoreCase("DG")) {
 					funcionarios.remove("DG");
 
 				}
@@ -842,37 +1053,39 @@ public class TechShineController {
 				this.pagina = nomeDaPagina;
 			}
 
-		} else if (requisicao.equalsIgnoreCase("/Cadastrar-Sistema-6")) {
+		} else if (requisicao.contains("/Cadastrar-Sistema-6")) {
+			
+			this.repetir="Cadastrar-Sistema-6";
 
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
 
 				int renda;
 				int despeza = 0;
-				String mes = s.mesActual(this.BD);
+				String mes = s.mesActual(BD);
 
-				if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				if (quem_E_O_func.equalsIgnoreCase("pca")) {
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 							0);
 
-					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 					if (despezas.size() > 0) {
 
-						despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+						despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 					}
 
 					model.addAttribute("renda", renda + ",00 Kz");
 				} else {
 
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-							"", this.id);
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+							"", id);
 
 					if (renda == 0) {
 						model.addAttribute("renda", "Irregular");
@@ -882,7 +1095,7 @@ public class TechShineController {
 
 				}
 				
-				ArrayList<String> cursosTt = p.pesquisarTudoEmString(this.BD, "cursos", "nome");
+				ArrayList<String> cursosTt = p.pesquisarTudoEmString(BD, "cursos", "nome");
 
 				model.addAttribute("qalunos", qalunos);
 				model.addAttribute("qfunc", qfunc);
@@ -904,37 +1117,37 @@ public class TechShineController {
 				nomeDaPagina = "redirect:login";
 				this.pagina = nomeDaPagina;
 			}
-		} else if (requisicao.equalsIgnoreCase("/Cadastrar-Sistema-6-1")) {
+		} else if (requisicao.contains("/Cadastrar-Sistema-6-1")) {
 
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
 
 				int renda;
 				int despeza = 0;
-				String mes = s.mesActual(this.BD);
+				String mes = s.mesActual(BD);
 
-				if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				if (quem_E_O_func.equalsIgnoreCase("pca")) {
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 							0);
 
-					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 					if (despezas.size() > 0) {
 
-						despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+						despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 					}
 					model.addAttribute("renda", renda + ",00 Kz");
 
 				} else {
 
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-							"", this.id);
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+							"", id);
 
 					if (renda == 0) {
 						model.addAttribute("renda", "Irregular");
@@ -966,37 +1179,39 @@ public class TechShineController {
 			}
 		}
 
-		else if (requisicao.equalsIgnoreCase("/Cadastrar-Sistema-7")) {
+		else if (requisicao.contains("/Cadastrar-Sistema-7")) {
+			
+			this.repetir="Cadastrar-Sistema-7";
 
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
 
 				int renda;
 				int despeza = 0;
-				String mes = s.mesActual(this.BD);
+				String mes = s.mesActual(BD);
 
-				if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				if (quem_E_O_func.equalsIgnoreCase("pca")) {
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 							0);
 
-					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 					if (despezas.size() > 0) {
 
-						despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+						despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 					}
 
 					model.addAttribute("renda", renda + ",00 Kz");
 				} else {
 
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-							"", this.id);
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+							"", id);
 
 					if (renda == 0) {
 						model.addAttribute("renda", "Irregular");
@@ -1028,7 +1243,9 @@ public class TechShineController {
 			}
 		}
 
-		else if (requisicao.equalsIgnoreCase("/WgContacts")) {
+		else if (requisicao.contains("/WgContacts")) {
+			
+			this.repetir="WgContacts";
 
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
@@ -1036,22 +1253,22 @@ public class TechShineController {
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
 				
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
 
 				
 				int renda;
-				String mes = s.mesActual(this.BD);
+				String mes = s.mesActual(BD);
 
-				if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi, 0);
+				if (quem_E_O_func.equalsIgnoreCase("pca")) {
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi, 0);
 
 					model.addAttribute("renda", renda + ",00 Kz");
 				} else {
 
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-							this.id);
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+							id);
 
 					if (renda == 0) {
 						model.addAttribute("renda", "Irregular");
@@ -1082,118 +1299,7 @@ public class TechShineController {
 				this.pagina = nomeDaPagina;
 			}
 
-		} else if (requisicao.equalsIgnoreCase("/Cadastrar-Sistema-9")) {
-
-			estado = -5;
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				estado2 = 0;
-				ArrayList<Integer> financaCadastrada = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "finCadastrada");
-				if (financaCadastrada.size() > 0) {
-					estado2 = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "finCadastrada").get(0);
-				}
-
-				if (estado2 == 0) {
-
-					for (Curso c : cursos) {
-
-						tCursos.add(c.getNome());
-					}
-
-					int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-					int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-					int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-					int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin",
-							this.bi, 0);
-
-					int despeza = 0;
-					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
-
-					if (despezas.size() > 0) {
-
-					}
-
-					model.addAttribute("qalunos", qalunos);
-					model.addAttribute("qfunc", qfunc);
-					model.addAttribute("qCurso", QCurso);
-					model.addAttribute("renda", renda);
-					model.addAttribute("despeza", despeza);
-
-					model.addAttribute("cursos", tCursos);
-					model.addAttribute("resultado", "Curso Inserido Com Sucesso !");
-					model.addAttribute("nome", configurarNome);
-					model.addAttribute("escola", configurarEscola);
-
-					nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase9";
-				} else {
-
-					for (Curso c : cursos) {
-
-						tCursos.add(c.getNome());
-					}
-
-					int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-					int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-					int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-
-					int renda;
-					int despeza = 0;
-					String mes = s.mesActual(this.BD);
-
-					if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-						renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin",
-								this.bi, 0);
-
-						ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
-
-						if (despezas.size() > 0) {
-
-							despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
-						}
-						nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase10";
-
-					} else {
-
-						renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes,
-								"id", "", this.id);
-
-						if (renda == 0) {
-							model.addAttribute("renda", "Irregular");
-						} else {
-							model.addAttribute("renda", "Regular");
-						}
-
-						nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase11";
-					}
-
-					model.addAttribute("qalunos", qalunos);
-					model.addAttribute("qfunc", qfunc);
-					model.addAttribute("qCurso", QCurso);
-					model.addAttribute("renda", renda);
-					model.addAttribute("despeza", despeza);
-
-					model.addAttribute("cursos", tCursos);
-					model.addAttribute("resultado", "Curso Inserido Com Sucesso !");
-					model.addAttribute("nome", configurarNome);
-					model.addAttribute("escola", configurarEscola);
-
-					// nomeDaPagina="WebGnius/cadastrar_Empresa/tudo_Cadastrado";
-
-				}
-
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Cadastrar-Sistema-9a")) {
+		} else if (requisicao.contains("/Cadastrar-Sistema-9a")) {
 
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
@@ -1211,316 +1317,29 @@ public class TechShineController {
 				nomeDaPagina = "redirect:login";
 				this.pagina = nomeDaPagina;
 			}
-		} else if (requisicao.equalsIgnoreCase("/Cadastrar-Sistema-9b")) {
+		}  else if (requisicao.contains("/Admin-Cadastro")) {
+			
+			this.repetir="Admin-Cadastro";
 
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
-				for (Curso c : cursos) {
-
-					tCursos.add(c.getNome());
-				}
-
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
-						0);
-
-				model.addAttribute("qalunos", qalunos);
-				model.addAttribute("qfunc", qfunc);
-				model.addAttribute("qCurso", QCurso);
-				model.addAttribute("renda", renda);
-
-				ArrayList<String> tCursos2= new ArrayList<>();
-
-				for(int i=0;i<tCursos.size();i++) {
-
-					tCursos2.add(tCursos.get(i));
-				}
-
-				model.addAttribute("cursos", tCursos2);
-				model.addAttribute("resultado", "Curso Inserido Com Sucesso !");
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-				nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase9b";
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Cadastrar-Sistema-9c")) {
-
-			estado = -5;
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				for (Curso c : cursos) {
-
-					tCursos.add(c.getNome());
-				}
-
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
-						0);
-
-				model.addAttribute("qalunos", qalunos);
-				model.addAttribute("qfunc", qfunc);
-				model.addAttribute("qCurso", QCurso);
-				model.addAttribute("renda", renda);
 				
-				ArrayList<String> tCursos2= new ArrayList<>();
-				
-				for(int i=0;i<tCursos.size();i++) {
-					
-					tCursos2.add(tCursos.get(i));
-				}
 
-				model.addAttribute("cursos", tCursos2);
-				model.addAttribute("resultado", "Curso Inserido Com Sucesso !");
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase9c";
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Cadastrar-Sistema-9d")) {
-
-			estado = -5;
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				for (Curso c : cursos) {
-
-					tCursos.add(c.getNome());
-				}
-
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
-						0);
-
-				ArrayList<String> docs = p.pesquisarTudoEmString(this.BD, "infoescola", "Documentos");
-				model.addAttribute("qalunos", qalunos);
-				model.addAttribute("qfunc", qfunc);
-				model.addAttribute("qCurso", QCurso);
-				model.addAttribute("renda", renda);
-
-				model.addAttribute("documentos", docs);
-
-				model.addAttribute("resultado", "Curso Inserido Com Sucesso !");
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-				nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase9d";
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Cadastrar-Sistema-9e")) {
-
-			estado = -5;
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				for (Curso c : cursos) {
-
-					tCursos.add(c.getNome());
-				}
-
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
-						0);
-
-				ArrayList<String> materiais = p.pesquisarTudoEmString(this.BD, "infoescola", "Materias");
-
-				model.addAttribute("qalunos", qalunos);
-				model.addAttribute("qfunc", qfunc);
-				model.addAttribute("qCurso", QCurso);
-				model.addAttribute("renda", renda);
-				model.addAttribute("materiais", materiais);
-
-				model.addAttribute("cursos", tCursos);
-				model.addAttribute("resultado", "Curso Inserido Com Sucesso !");
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase9e";
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Cadastrar-Sistema-9f")) {
-
-			estado = -5;
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				for (Curso c : cursos) {
-
-					tCursos.add(c.getNome());
-				}
-
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
-						0);
-
-				ArrayList<String> faltas = new ArrayList<>();
-				faltas.add("Vermelha");
-				faltas.add("Azul");
-
-				model.addAttribute("qalunos", qalunos);
-				model.addAttribute("qfunc", qfunc);
-				model.addAttribute("qCurso", QCurso);
-				model.addAttribute("renda", renda);
-				model.addAttribute("faltas", faltas);
-
-				model.addAttribute("cursos", tCursos);
-				model.addAttribute("resultado", "Curso Inserido Com Sucesso !");
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase9f";
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Cadastrar-Sistema-10")) {
-
-			estado = -5;
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				for (Curso c : cursos) {
-
-					tCursos.add(c.getNome());
-				}
-
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-
-				int despeza = 0;
-				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
-
-				if (despezas.size() > 0) {
-
-					despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
-				}
-
-				int renda = 0;
-				String mes = s.mesActual(this.BD);
-				if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
-							0);
-					nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase10";
-				} else {
-
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-							"", this.id);
-
-					if (renda == 0) {
-						model.addAttribute("renda", "Irregular");
-					} else {
-						model.addAttribute("renda", "Regular");
-					}
-
-					nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase11";
-
-				}
-
-				model.addAttribute("qalunos", qalunos);
-				model.addAttribute("qfunc", qfunc);
-				model.addAttribute("qCurso", QCurso);
-				model.addAttribute("renda", renda);
-				model.addAttribute("despeza", despeza);
-				model.addAttribute("financa", this.quem_E_O_func + " | Finança");
-
-				model.addAttribute("cursos", tCursos);
-				model.addAttribute("resultado", "Curso Inserido Com Sucesso !");
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				this.pagina = nomeDaPagina;
-
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Admin-Cadastro")) {
-
-			estado = -5;
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				for (Curso c : cursos) {
-
-					tCursos.add(c.getNome());
-				}
-
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				int despeza = 0;
-				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 				if (despezas.size() > 0) {
 
-					despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+					despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 				}
 
 				model.addAttribute("qalunos", qalunos);
@@ -1549,30 +1368,26 @@ public class TechShineController {
 
 			// Alterando O Salario Dos Funcionários
 
-		} else if (requisicao.equalsIgnoreCase("/Admin-Alterar-Salario")) {
+		} else if (requisicao.contains("/Admin-Alterar-Salario")) {
 
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
-				for (Curso c : cursos) {
-
-					tCursos.add(c.getNome());
-				}
-
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				int despeza = 0;
-				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 				if (despezas.size() > 0) {
 
-					despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+					despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 				}
 
 				model.addAttribute("qalunos", qalunos);
@@ -1597,30 +1412,26 @@ public class TechShineController {
 				this.pagina = nomeDaPagina;
 			}
 
-		} else if (requisicao.equalsIgnoreCase("/Admin-Alterar-Propina")) {
+		} else if (requisicao.contains("/Admin-Alterar-Propina")) {
 
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
-				for (Curso c : cursos) {
 
-					tCursos.add(c.getNome());
-				}
-
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				int despeza = 0;
-				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 				if (despezas.size() > 0) {
 
-					despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+					despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 				}
 
 				model.addAttribute("qalunos", qalunos);
@@ -1644,30 +1455,27 @@ public class TechShineController {
 				this.pagina = nomeDaPagina;
 			}
 
-		} else if (requisicao.equalsIgnoreCase("/Admin-Alterar-MC")) {
+		} else if (requisicao.contains("/Admin-Alterar-MC")) {
 
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
-				for (Curso c : cursos) {
+			
 
-					tCursos.add(c.getNome());
-				}
-
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				int despeza = 0;
-				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 				if (despezas.size() > 0) {
 
-					despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+					despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 				}
 
 				model.addAttribute("qalunos", qalunos);
@@ -1691,30 +1499,26 @@ public class TechShineController {
 				this.pagina = nomeDaPagina;
 			}
 
-		} else if (requisicao.equalsIgnoreCase("/Admin-Alterar-Doc")) {
+		} else if (requisicao.contains("/Admin-Alterar-Doc")) {
 
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
-				for (Curso c : cursos) {
 
-					tCursos.add(c.getNome());
-				}
-
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				int despeza = 0;
-				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 				if (despezas.size() > 0) {
 
-					despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+					despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 				}
 
 				model.addAttribute("qalunos", qalunos);
@@ -1738,30 +1542,26 @@ public class TechShineController {
 				this.pagina = nomeDaPagina;
 			}
 
-		} else if (requisicao.equalsIgnoreCase("/Admin-Alterar-Vendas")) {
+		} else if (requisicao.contains("/Admin-Alterar-Vendas")) {
 
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
-				for (Curso c : cursos) {
-
-					tCursos.add(c.getNome());
-				}
-
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+			
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				int despeza = 0;
-				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 				if (despezas.size() > 0) {
 
-					despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+					despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 				}
 
 				model.addAttribute("qalunos", qalunos);
@@ -1786,30 +1586,26 @@ public class TechShineController {
 				this.pagina = nomeDaPagina;
 			}
 
-		} else if (requisicao.equalsIgnoreCase("/Admin-Alterar-FE")) {
+		} else if (requisicao.contains("/Admin-Alterar-FE")) {
 
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
-				for (Curso c : cursos) {
 
-					tCursos.add(c.getNome());
-				}
-
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				int despeza = 0;
-				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 				if (despezas.size() > 0) {
 
-					despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+					despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 				}
 
 				model.addAttribute("qalunos", qalunos);
@@ -1834,7 +1630,7 @@ public class TechShineController {
 				this.pagina = nomeDaPagina;
 			}
 
-		} else if (requisicao.equalsIgnoreCase("/Admin-Ver-PM")) {
+		} else if (requisicao.contains("/Admin-Ver-PM")) {
 
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
@@ -1852,7 +1648,7 @@ public class TechShineController {
 				this.pagina = nomeDaPagina;
 			}
 
-		} else if (requisicao.equalsIgnoreCase("/Admin-Ver-Salario")) {
+		} else if (requisicao.contains("/Admin-Ver-Salario")) {
 
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
@@ -1870,7 +1666,7 @@ public class TechShineController {
 				this.pagina = nomeDaPagina;
 			}
 
-		} else if (requisicao.equalsIgnoreCase("/Admin-Ver-MC")) {
+		} else if (requisicao.contains("/Admin-Ver-MC")) {
 
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
@@ -1888,7 +1684,7 @@ public class TechShineController {
 				this.pagina = nomeDaPagina;
 			}
 
-		} else if (requisicao.equalsIgnoreCase("/Admin-Ver-Doc")) {
+		} else if (requisicao.contains("/Admin-Ver-Doc")) {
 
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
@@ -1906,7 +1702,7 @@ public class TechShineController {
 				this.pagina = nomeDaPagina;
 			}
 
-		} else if (requisicao.equalsIgnoreCase("/Admin-Ver-Materias")) {
+		} else if (requisicao.contains("/Admin-Ver-Materias")) {
 
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
@@ -1924,7 +1720,7 @@ public class TechShineController {
 				this.pagina = nomeDaPagina;
 			}
 
-		} else if (requisicao.equalsIgnoreCase("/Admin-Ver-FE")) {
+		} else if (requisicao.contains("/Admin-Ver-FE")) {
 
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
@@ -1944,17 +1740,19 @@ public class TechShineController {
 
 		}
 
-		else if (requisicao.equalsIgnoreCase("/Admin-Minha-Seguranca")) {
+		else if (requisicao.contains("/Admin-Minha-Seguranca")) {
+			
+			this.repetir="Admin-Minha-Seguranca";
 
 			estado = -5;
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				model.addAttribute("qalunos", qalunos);
@@ -1983,10 +1781,78 @@ public class TechShineController {
 
 		return this.pagina;
 	}
+	
+	@GetMapping({"/Cadastrar-Documentos","/webgenius/Cadastrar-Documentos"})
+	public String documentos(Model model,HttpServletRequest request,HttpServletResponse response) {
+		
+		
+Cookie[] cookies = request.getCookies();
 
-	@GetMapping("/Cadastrar-Documentos")
-	public String documentos(Model model) {
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
 
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+
+		this.repetir="Cadastrar-Documentos";
 		Salvar_SQL s = new Salvar_SQL();
 		String nomeDaPagina;
 		if (estado < 0) {
@@ -2027,9 +1893,81 @@ public class TechShineController {
 		return this.pagina;
 
 	}
+	
+	@GetMapping({"/Cadastrar-Materias","/webgenius/Cadastrar-Materias"})
+	public String materias(Model model,HttpServletRequest request,HttpServletResponse response) {
+		
+Cookie[] cookies = request.getCookies();
 
-	@GetMapping("/Cadastrar-Materias")
-	public String materias(Model model) {
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		
+		
+		
+		this.repetir="Cadastrar-Materias";
 
 		Salvar_SQL s = new Salvar_SQL();
 		String nomeDaPagina;
@@ -2073,9 +2011,76 @@ public class TechShineController {
 	}
 
 	@GetMapping("/Entrar")
-	public String entrar(Model model) {
+	public String entrar(Model model,HttpServletRequest request,HttpServletResponse response) {
+		
+		
+Cookie[] cookies = request.getCookies();
 
-		Salvar_SQL s = new Salvar_SQL();
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+
+		this.repetir="Entrar";
 		String nomeDaPagina;
 		if (estado < 0) {
 
@@ -2158,9 +2163,11 @@ public class TechShineController {
 		Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
 
 		String nomeDaEscola2 = s.inserirTabelaAdmin(admin, this.fase1);
-		ta.actualizarColuna_Qualquer_Linha("wg", "Escolas", "escola", 0, nomeDaEscola2, "bi", bi);
-		this.BD = s.retornarBaseDeDados();
+		ta.actualizarColuna_Qualquer_Linha("wg", "escolas", "escola", 0, nomeDaEscola2, "bi", bi);
 
+		
+		System.out.println("========FOI ACTUALIZADO");
+		System.out.println("nomeDaEscola2: "+nomeDaEscola2);
 		model.addAttribute("nome", configurarNome);
 		model.addAttribute("escola", configurarEscola);
 
@@ -2187,8 +2194,8 @@ public class TechShineController {
 		model.addAttribute("nome", configurarNome);
 		model.addAttribute("escola", configurarEscola);
 
-		s.inserir_Materias(this.BD, this.materias);
-		s.inserir_Documentos(this.BD, this.documentos);
+		s.inserir_Materias(BD, this.materias);
+		s.inserir_Documentos(BD, this.documentos);
 
 		// Definindo Que Parou O Cadastro na Fase 6
 		s.sistema_Actualizar_OndeParou_O_Cadastro(bi, 5);
@@ -2205,13 +2212,18 @@ public class TechShineController {
 
 		Salvar_SQL s = new Salvar_SQL();
 		Pesquisar_SQL p = new Pesquisar_SQL();
-		ArrayList<Curso> cursos = p.Listar_Cursos(this.BD);
+		ArrayList<Curso> cursos = p.Listar_Cursos(BD);
 		ArrayList<String> tCursos = new ArrayList<>();
-		for (Curso c : cursos) {
+		
+		if(cursos!=null) {
+			
+			for (Curso c : cursos) {
 
-			tCursos.add(c.getNome());
+				tCursos.add(c.getNome());
+			}
 		}
-		ArrayList<String> niveis = p.pesquisarTudoEmString(this.BD, "infoescola", "niveis");
+		
+		ArrayList<String> niveis = p.pesquisarTudoEmString(BD, "infoescola", "niveis");
 
 		boolean cursoInserido;
 
@@ -2219,7 +2231,7 @@ public class TechShineController {
 			this.nomeDoCurso = curso.getNome();
 			curso.setNome(this.nomeDoCurso);
 
-			cursoInserido = s.inserirCurso(this.BD, curso);
+			cursoInserido = s.inserirCurso(BD, curso);
 			if (cursoInserido) {
 
 				model.addAttribute("niveis", niveis);
@@ -2236,7 +2248,7 @@ public class TechShineController {
 				this.pagina = "redirect:Cadastrar-Sistema-5a";
 			}
 		} else {
-			cursoInserido = s.inserirCurso(this.BD, curso);
+			cursoInserido = s.inserirCurso(BD, curso);
 			if (cursoInserido) {
 
 				if (cursos != null) {
@@ -2248,9 +2260,13 @@ public class TechShineController {
 				model.addAttribute("nome", configurarNome);
 				model.addAttribute("escola", configurarEscola);
 
+				
+				System.out.println("CurSO INSERIDO COM SUCESSO");
 				this.pagina = "redirect:Cadastrar-Sistema-5a";
 
 			} else {
+				
+				System.out.println("FALHA AO  INSERIR O CurSO");
 				model.addAttribute("resultado", " * Falha, Este Curso Ja Existe Ou Defina-o sem Pontos");
 				this.pagina = "redirect:Cadastrar-Sistema-5a";
 			}
@@ -2291,7 +2307,7 @@ public class TechShineController {
 			model.addAttribute("nome", configurarNome);
 			model.addAttribute("escola", configurarEscola);
 
-			retorno = s.inserir_Integrante(this.BD, func);
+			retorno = s.inserir_Integrante(BD, func);
 			if (retorno) {
 
 				model.addAttribute("resultado", "Funcionário Cadastrado com Sucesso");
@@ -2367,15 +2383,20 @@ public class TechShineController {
 
 		Salvar_SQL s = new Salvar_SQL();
 
-		s.inserir_Varias_Disciplinas(this.BD, chaves, desciplina.getNivel(), desciplinas, desciplina.getCurso());
+		s.inserir_Varias_Disciplinas(BD, chaves, desciplina.getNivel(), desciplinas, desciplina.getCurso());
 
-		ArrayList<Curso> cursos = p.Listar_Cursos(this.BD);
+		ArrayList<Curso> cursos = p.Listar_Cursos(BD);
 		ArrayList<String> tCursos = new ArrayList<>();
 
-		for (Curso c : cursos) {
+		
+		if(cursos!=null) {
+			
+			for (Curso c : cursos) {
 
-			tCursos.add(c.getNome());
+				tCursos.add(c.getNome());
+			}
 		}
+		
 		model.addAttribute("cursos", tCursos);
 		model.addAttribute("resultado", "Curso Inserido Com Sucesso !");
 		model.addAttribute("nome", configurarNome);
@@ -2428,9 +2449,9 @@ public class TechShineController {
 
 		Salvar_SQL s = new Salvar_SQL();
 
-		s.inserir_Varias_Disciplinas(this.BD, chaves, desciplina.getNivel(), desciplinas, this.nomeDoCurso);
+		s.inserir_Varias_Disciplinas(BD, chaves, desciplina.getNivel(), desciplinas, this.nomeDoCurso);
 
-		ArrayList<Curso> cursos = p.Listar_Cursos(this.BD);
+		ArrayList<Curso> cursos = p.Listar_Cursos(BD);
 		ArrayList<String> tCursos = new ArrayList<>();
 
 		for (Curso c : cursos) {
@@ -2470,11 +2491,11 @@ public class TechShineController {
 
 		String abeviaturaCurso_Ou_Disciplina = curso;
 		abeviaturaCurso_Ou_Disciplina = abeviaturaCurso_Ou_Disciplina.substring(0, 3);
-		ArrayList<String> turmas = p.pesquisarTudoEmString(BD, "cursos_turmas", curso);
+		ArrayList<String> turmas = p.pesquisarTudoEmString(BD, "CursosTurmas", curso);
 
 		if ((sigla.equalsIgnoreCase("")) || (sigla == null)) {
 
-			c.criarTabelaTurma(this.BD, turma, configurarEscola);
+			c.criarTabelaTurma(BD, turma, configurarEscola);
 
 			model.addAttribute("resultado", "Turma Criada Com Sucesso!");
 			this.pagina = "redirect:Cadastrar-Sistema-7";
@@ -2493,7 +2514,7 @@ public class TechShineController {
 
 			if (continuar) {
 
-				c.criarTabelaTurma(this.BD, turma, configurarEscola);
+				c.criarTabelaTurma(BD, turma, configurarEscola);
 				model.addAttribute("resultado", "Turma Criada Com Sucesso!");
 				this.pagina = "redirect:Cadastrar-Sistema-7";
 			} else {
@@ -2545,7 +2566,7 @@ public class TechShineController {
 	}
 
 	@PostMapping("/Admin-Cadastrar_Prof")
-	public String Admin_Cadastrar__Prof(Funcionario func, Model model) {
+	public String Admin_Cadastrar__Prof(Funcionario func, Model model,Curso curso2) {
 
 		String pagina = null;
 		int valor;
@@ -2557,7 +2578,13 @@ public class TechShineController {
 		valor = tempos.get(0);
 		tempos.add(valor);
 		func.setTempoPorDesciplinas(tempos);
+		biFunc= func.getBi();
+		func.setBi(biFunc);
+		
+		this.professor= func.getNome();
+		func.setNome(this.professor);
 
+		
 		if (valor == 0) {
 
 			model.addAttribute("resultado", "Falha, Informe o Tempo Por Desciplinas");
@@ -2576,7 +2603,7 @@ public class TechShineController {
 			this.func.setNivel(nivel);
 
 			Salvar_SQL s = new Salvar_SQL();
-			ArrayList<String> turmas = p.Listar_TurmasDoCurso2(this.BD, turno, nivel, curso);
+			ArrayList<String> turmas = p.Listar_TurmasDoCurso2(BD, turno, nivel, curso);
 
 			ArrayList<String> tTurmas = new ArrayList<>();
 
@@ -2586,7 +2613,7 @@ public class TechShineController {
 					tTurmas.add(turmas.get(i));
 
 					this.func.setTurmas(tTurmas);
-					s.inserir_Integrante(this.BD, this.func);
+					s.inserir_Integrante(BD, this.func);
 					model.addAttribute("resultado", "Professor Cadastrado Com Sucesso !");
 					break sair;
 				}
@@ -2594,18 +2621,140 @@ public class TechShineController {
 
 			imprimirFuncionario();
 
-			this.pagina = "redirect:Cadastrar-Sistema-5b";
+			
+		
+			
+			if(curso2.isMaisDados()) {
+				
+				this.pagina = "redirect:admin-Professor-Adicional";
+				
+			}else {
+				
+				this.pagina = "redirect:Cadastrar-Sistema-5b";
+			}
+			
+			
 		}
 
 		return this.pagina;
 
+	}
+	
+	@Override
+	@Async
+	@PostMapping({"/Admin-Cadastrar_Aluno"})
+	public String Admin_Cadastrar__Aluno(HttpServletRequest request,Aluno aluno, Model model) {
+		
+		
+		try {
+			
+			Thread.sleep(5000);
+			
+			String turma = aluno.getTurmasVazia();
+			Salvar_SQL s = new Salvar_SQL();
+			String requisicao;
+			String semBI;
+			boolean alunoInserido=false;
+			
+			Pesquisar_SQL p = new Pesquisar_SQL();
+			Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
+			int qalunos=0;
+			
+			if(aluno.isSemBI()) {
+				
+				 qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+			     ++qalunos;
+			     aluno.setBi(qalunos+"");
+			}
+			requisicao = request.getRequestURI();
+			
+			System.out.println("Ttttttttttt  Turma: "+turma);
+			
+			if(turma.equalsIgnoreCase("")){
+				
+				if(quem_E_O_func.equalsIgnoreCase("secretaria")) {
+					
+					this.pagina = "redirect:Secretaria-Cadastrar_Aluno";
+				}else {
+					
+					this.pagina = "redirect:Admin-Cadastrar_Aluno";
+				}
+				
+			}else {
+				
+				this.turma = s.inserirAluno3(BD, this.aluno, turma,qalunos+"");  
+				alunoInserido = this.turma.isAlunoInserido();
+				this.turma.setAlunoInserido(alunoInserido);
+				
+				System.out.println("Ttttttttttt  ALUNON INSERIDO: ");
+				
+				if(quem_E_O_func.equalsIgnoreCase("secretaria")) {
+					
+					if(alunoInserido) {
+						
+						
+						Usuario usuario = p.retornaUsuario(BD,aluno.getIdFunc(),this.configurarEscola);
+						
+						
+						boolean existeuUsuario = usuario.isExisteUsuario();
+						
+						if(existeuUsuario){
+							
+							
+							bi = usuario.getBi();
+							int diario= p.pesquisarUmConteudo_Numa_Linha_Int(BD, "Func_Diario", "MatEConf", "bi", bi, 0);
+							++diario;
+
+							ta.actualizarColuna_Qualquer_Linha(BD, "Func_Diario", "MatEConf", diario, "", "bi", bi);
+							
+							
+							System.out.println("Ttttttttttt  BEM ACTUALIZADO COM SUCESSO !!!: ");
+							this.pagina = "redirect:Secretaria-Info";
+						}else {
+							
+							
+							this.pagina = "redirect:Secretaria-Cadastrar_Aluno";
+						}
+						
+						
+					}else {
+						
+						
+						this.pagina = "redirect:Secretaria-Cadastrar_Aluno";
+					}
+					
+				}else {
+					
+					if(alunoInserido) {
+						
+						this.pagina = "redirect:Admin-Info";
+					}else {
+						
+						this.pagina = "redirect:Admin-Cadastrar_Aluno";
+					}
+
+					System.out.println("Ttttttttttt  REQISICAO: "+requisicao);
+					
+					
+				}
+				  
+			}
+			
+			
+			
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
+		return this.pagina;
+		
+		
 	}
 
 	@PostMapping({ "/Cadastrar-Sistema-9e" })
 	public String CadasdrarDoc(@Validated Documentos doc, Model model, BindingResult erros) {
 
 		Pesquisar_SQL p = new Pesquisar_SQL();
-		ArrayList<String> materiais = p.pesquisarTudoEmString(this.BD, "infoescola", "Materias");
+		ArrayList<String> materiais = p.pesquisarTudoEmString(BD, "infoescola", "Materias");
 
 		this.doc = doc;
 
@@ -2656,8 +2805,8 @@ public class TechShineController {
 		Salvar_SQL s = new Salvar_SQL();
 		Pesquisar_SQL p = new Pesquisar_SQL();
 
-		ArrayList<String> materias = p.pesquisarTudoEmString(this.BD, "infoescola", "Materias");
-		ArrayList<String> documentos = p.pesquisarTudoEmString(this.BD, "infoescola", "Documentos");
+		ArrayList<String> materias = p.pesquisarTudoEmString(BD, "infoescola", "Materias");
+		ArrayList<String> documentos = p.pesquisarTudoEmString(BD, "infoescola", "Documentos");
 
 		boolean continuar = false;
 		if (materias.size() > 0) {
@@ -2665,13 +2814,13 @@ public class TechShineController {
 			continuar = true;
 		}
 
-		ArrayList<String> cursos = p.pesquisarTudoEmString(this.BD, "cursos", "nome");
+		ArrayList<String> cursos = p.pesquisarTudoEmString(BD, "cursos", "nome");
 
 		for (int i = 0; i < cursos.size(); i++) {
 
-			s.inserir_Preco_Da_Confirmacao_curso(this.BD, cursos.get(i), this.mc.getConfirmacoes().get(i));
+			s.inserir_Preco_Da_Confirmacao_curso(BD, cursos.get(i), this.mc.getConfirmacoes().get(i));
 
-			s.inserir_Preco_Da_matricula_curso(this.BD, cursos.get(i), this.mc.getMatriculas().get(i));
+			s.inserir_Preco_Da_matricula_curso(BD, cursos.get(i), this.mc.getMatriculas().get(i));
 
 
 		}
@@ -2680,22 +2829,22 @@ public class TechShineController {
 
 			for (int i = 0; i < materias.size(); i++) {
 
-				s.inserir_Preco_Do_Material(this.BD, materias.get(i), this.venda.getMateriais().get(i));
+				s.inserir_Preco_Do_Material(BD, materias.get(i), this.venda.getMateriais().get(i));
 			}
 		}
 
 		for (int i = 0; i < documentos.size(); i++) {
-			s.inserir_Preco_Do_Documento(this.BD, documentos.get(i), this.doc.getDocumentos().get(i));
+			s.inserir_Preco_Do_Documento(BD, documentos.get(i), this.doc.getDocumentos().get(i));
 		}
 
-		s.inserir_Preco_Tempo_de_PagamentoPropina(this.BD, this.pM.getPrazo());
+		s.inserir_Preco_Tempo_de_PagamentoPropina(BD, this.pM.getPrazo());
 
-		s.inserir_Precos_Das_Faltas(this.BD, "Vermelha", fe.getFaltas().get(0));
-		s.inserir_Precos_Das_Faltas(this.BD, "Azul", fe.getFaltas().get(1));
-		s.inserir_Preco_Do_Estagio(this.BD, fe.getEstagio());
+		s.inserir_Precos_Das_Faltas(BD, "Vermelha", fe.getFaltas().get(0));
+		s.inserir_Precos_Das_Faltas(BD, "Azul", fe.getFaltas().get(1));
+		s.inserir_Preco_Do_Estagio(BD, fe.getEstagio());
 
 		Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
-		ta.actualizarColuna_Qualquer_Linha(this.BD, "adminfinanca", "finCadastrada", 1, "", "bi_admin", this.bi);
+		ta.actualizarColuna_Qualquer_Linha(BD, "adminfinanca", "finCadastrada", 1, "", "bi_admin", bi);
 
 		// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
 		return "redirect:Cadastrar-Sistema-10";
@@ -2785,31 +2934,121 @@ public class TechShineController {
 	 */
 
 	@GetMapping("/admin")
-	public String admin(Model model) {
+	public String admin(Model model,HttpServletRequest request,HttpSession session) {
+		
+		
+		
+		
+		
+		Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		/*
+		
+		BD = (String) session.getAttribute("BD");
+		bi = (String) session.getAttribute("bi");
+		this.turmaAluno = (String) session.getAttribute("turma");
+		id = (Integer)session.getAttribute("id");
+		quem_E_O_func = (String) session.getAttribute("integrante");*/
+		//biFunc = (String) session.getAttribute("biFunc");
+		//this.professor = (String) session.getAttribute("professor");
+		
+		
+		
+		
+		this.repetir="admin";
 
 		Pesquisar_SQL p = new Pesquisar_SQL();
 		String nomeDaPagina = null;
 		estado = -5;
 
+		
+		//senha = (String) session.getAttribute("senha");
 		if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
-			int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-			int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-			int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
+			int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+			int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+			int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
 			int renda = 0;
 
 			Salvar_SQL s = new Salvar_SQL();
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 
-			if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-				renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi, 0);
+			
+			//quem_E_O_func = (String) session.getAttribute("integrante");
+			if (quem_E_O_func.equalsIgnoreCase("pca")) {
+				renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi, 0);
 				nomeDaPagina = "TechShine/Admin/inicio";
 				model.addAttribute("renda", renda + ",00 Kz");
-			} else if (this.quem_E_O_func.equalsIgnoreCase("DG")) {
+			} else if (quem_E_O_func.equalsIgnoreCase("DG")) {
 
-				renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "dg_financa", mes, "id", "", this.id);
+				renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "DG_Financa", mes, "id", "", id);
 
 				if (renda == 0) {
 					model.addAttribute("renda", "Irregular");
@@ -2818,9 +3057,9 @@ public class TechShineController {
 				}
 
 				nomeDaPagina = "TechShine/DG/inicio";
-			} else if (this.quem_E_O_func.equalsIgnoreCase("DA")) {
+			} else if (quem_E_O_func.equalsIgnoreCase("DA")) {
 
-				renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "da_financa", mes, "id", "", this.id);
+				renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "DA_Financa", mes, "id", "", id);
 
 				if (renda == 0) {
 					model.addAttribute("renda", "Irregular");
@@ -2829,9 +3068,9 @@ public class TechShineController {
 				}
 
 				nomeDaPagina = "TechShine/DA/inicio";
-			} else if (this.quem_E_O_func.equalsIgnoreCase("DP")) {
+			} else if (quem_E_O_func.equalsIgnoreCase("DP")) {
 
-				renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "dp_financa", mes, "id", "", this.id);
+				renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "DP_Financa", mes, "id", "", id);
 
 				if (renda == 0) {
 					model.addAttribute("renda", "Irregular");
@@ -2845,6 +3084,8 @@ public class TechShineController {
 			model.addAttribute("qalunos", qalunos);
 			model.addAttribute("qfunc", qfunc);
 			model.addAttribute("qCurso", QCurso);
+			
+			
 
 			model.addAttribute("nome", configurarNome);
 			model.addAttribute("escola", configurarEscola);
@@ -2858,11 +3099,90 @@ public class TechShineController {
 			this.pagina = "redirect:login";
 		}
 
+		
+
+		
+		
+		Runtime.getRuntime().runFinalization();
+		Runtime.getRuntime().gc();
 		return this.pagina;
 
 	}
-	@GetMapping("/Admin-Todos-Cursos")
-	public String lista_De_Cursos(Model model) {
+	
+	
+	@GetMapping({"/Admin-Todos-Cursos","/webgenius/Admin-Todos-Cursos"})
+	public String lista_De_Cursos(Model model,HttpServletRequest request) {
+		
+		
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		this.repetir="Admin-Todos-Cursos";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -2872,13 +3192,13 @@ public class TechShineController {
 
 			Pesquisar_SQL p = new Pesquisar_SQL();
 
-			ArrayList<String> cursos = p.pesquisarTudoEmString(this.BD, "cursos", "nome");
-			ArrayList<Integer> precos = p.pesquisarTudoEmInt(this.BD, "cursos", "preco");
-			ArrayList<String> coords = p.pesquisarTudoEmString(this.BD, "cursos", "coord");
-			ArrayList<Integer> descima = p.pesquisarTudoEmInt(this.BD, "cursos_Niveis", "Decima");
-			ArrayList<Integer> DecimaPrimeira = p.pesquisarTudoEmInt(this.BD, "cursos_Niveis", "DecimaPrimeira");
-			ArrayList<Integer> DecimaSegunda = p.pesquisarTudoEmInt(this.BD, "cursos_Niveis", "DecimaSegunda");
-			ArrayList<Integer> DecimaTerceira = p.pesquisarTudoEmInt(this.BD, "cursos_Niveis", "DecimaTerceira");
+			ArrayList<String> cursos = p.pesquisarTudoEmString(BD, "cursos", "nome");
+			ArrayList<Integer> precos = p.pesquisarTudoEmInt(BD, "cursos", "preco");
+			ArrayList<String> coords = p.pesquisarTudoEmString(BD, "cursos", "coord");
+			ArrayList<Integer> descima = p.pesquisarTudoEmInt(BD, "cursos_Niveis", "Decima");
+			ArrayList<Integer> DecimaPrimeira = p.pesquisarTudoEmInt(BD, "cursos_Niveis", "DecimaPrimeira");
+			ArrayList<Integer> DecimaSegunda = p.pesquisarTudoEmInt(BD, "cursos_Niveis", "DecimaSegunda");
+			ArrayList<Integer> DecimaTerceira = p.pesquisarTudoEmInt(BD, "cursos_Niveis", "DecimaTerceira");
 			
 			ArrayList<Curso> funcs = new ArrayList<>();
 			for (int i = 0; i < cursos.size(); i++) {
@@ -2912,29 +3232,29 @@ public class TechShineController {
 
 			}
 
-			int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-			int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-			int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
+			int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+			int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+			int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
 			Salvar_SQL s = new Salvar_SQL();
 			int renda;
 			int despeza = 0;
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 
-			if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-				renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi, 0);
+			if (quem_E_O_func.equalsIgnoreCase("pca")) {
+				renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi, 0);
 
-				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 				if (despezas.size() > 0) {
 
-					despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+					despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 				}
 				model.addAttribute("renda", renda + ",00 Kz");
 
 			} else {
 
-				renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-						this.id);
+				renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+						id);
 
 				if (renda == 0) {
 					model.addAttribute("renda", "Irregular");
@@ -2972,6 +3292,7 @@ public class TechShineController {
 	@GetMapping("/Admin-curso-info")
 	public String Cursos(HttpServletRequest request) {
 
+		this.repetir="Admin-curso-info";
 		String nomeDaPagina = null;
 		estado = -5;
 		if (entrarNoSistema.podeAbrirAPagina(senha)) {
@@ -2991,9 +3312,84 @@ public class TechShineController {
 
 		return this.pagina;
 	}
+	
+	@GetMapping({"/Admin-Alunos"})
+	public String matricularAluno(Model model,HttpServletRequest request) {
+		
+		
+		
+Cookie[] cookies = request.getCookies();
 
-	@GetMapping("/Admin-Alunos")
-	public String matricularAluno(Model model) {
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		
+		
+		
+		
+		this.repetir="Admin-Alunos";
 		String nomeDaPagina = null;
 
 		Pesquisar_SQL p = new Pesquisar_SQL();
@@ -3002,39 +3398,39 @@ public class TechShineController {
 
 			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
-			ArrayList<Curso> cursos = p.Listar_Cursos(this.BD);
+			ArrayList<Curso> cursos = p.Listar_Cursos(BD);
 			ArrayList<String> tCursos = new ArrayList<>();
 
 			for (Curso c : cursos) {
 
 				tCursos.add(c.getNome());
 			}
-			ArrayList<String> niveis = p.pesquisarTudoEmString(this.BD, "infoescola", "niveis");
+			ArrayList<String> niveis = p.pesquisarTudoEmString(BD, "infoescola", "niveis");
 
-			int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-			int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-			int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
+			int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+			int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+			int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
 
 			Salvar_SQL s = new Salvar_SQL();
 			int renda;
 			int despeza = 0;
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 
-			if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-				renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi, 0);
+			if (quem_E_O_func.equalsIgnoreCase("pca")) {
+				renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi, 0);
 
-				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 				if (despezas.size() > 0) {
 
-					despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+					despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 				}
 
 				model.addAttribute("renda", renda + ",00 Kz");
 			} else {
 
-				renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-						this.id);
+				renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+						id);
 
 				if (renda == 0) {
 					model.addAttribute("renda", "Irregular");
@@ -3069,69 +3465,134 @@ public class TechShineController {
 		return this.pagina;
 	}
 
-	@PostMapping("/Admin-Alunos")
-	public String matricularAluno(Aluno aluno, Model model) {
+	 @Override
+	 @Async
+	@PostMapping({"/Admin-Alunos"})
+	public String matricularAluno(Model model,Aluno aluno) {
 
 		
-		String nomeDoAluno = aluno.getNome();
-		
-		System.out.println("nomeDoAluno: "+nomeDoAluno);
-		this.aluno.setNome(nomeDoAluno);
+		 
+		 
 		
 		Salvar_SQL s = new Salvar_SQL();
-		Turma dadosAluno = s.inserirAluno(this.BD, aluno);
+		
 
-		String turma2 = dadosAluno.getTurma();
-		dadosAluno.setTurma(turma2);
-
-		String[] a = turma2.split("_");
-
-		turma2 = this.configurarEscola + " " + a[0] + " AL";
-		dadosAluno.setUsuario(turma2);
-
-		this.turma = dadosAluno;
-
+		try {
+			Thread.sleep(5000);
+			
+			
 		String curso = aluno.getCurso();
 		String nivel = aluno.getNivel();
 		String turno = aluno.getTurno();
 		
-
 		aluno.setCurso(curso);
 		aluno.setNivel(nivel);
 		aluno.setTurno(turno);
-		aluno.setNome(nomeDoAluno);
+		
+		this.aluno = aluno;
+		
+		
+		
+		ArrayList<String> turmas = s.inserirAluno2(BD, aluno);
+		
+		System.out.println("Listando as Turmas : ");
+		
+		//this.turmas_Disponiveis = s.turmas_Disponiveis(BD, turmas);
+		//this.turmas_Indisponiveis = s.turmas_Indisponiveis(BD, turmas);
+		
+		this.turmas_Disponiveis = turmas;
+		DadosAdicionais da = new DadosAdicionais();
+		da.setTurmas(turmas);
+		da.setAluno(aluno);
+		
+		
 
 		
-		this.aluno.setCurso(curso);
-		this.aluno.setNivel(nivel);
-		this.aluno.setTurno(turno);
-
-		if (dadosAluno.isAlunoInserido()) {
-
-			model.addAttribute("resultado", "Aluno Inserido Com Sucesso !");
-			model.addAttribute("nome", configurarNome);
-			model.addAttribute("escola", configurarEscola);
-			model.addAttribute("aluno", dadosAluno);
-
-			this.pagina = "redirect:Admin-Info";
-		} else {
-
-			model.addAttribute("resultado", "Aluno Inserido Com Sucesso !");
-			model.addAttribute("nome", configurarNome);
-			model.addAttribute("escola", configurarEscola);
-
-			ArrayList<Turma> alunoDaTurma = new ArrayList<>();
-			alunoDaTurma.add(dadosAluno);
-
-			model.addAttribute("aluno", alunoDaTurma);
-
-			this.pagina = "redirect:Admin-Alunos";
+		if (quem_E_O_func.equalsIgnoreCase("secretaria")) {
+			
+			this.pagina = "redirect:Secretaria-Cadastrar_Aluno";  
+		}else {
+			this.pagina = "redirect:Admin-Cadastrar_Aluno";  
+		}
+		
+		}catch (Exception e) {
+			e.printStackTrace();
 		}
 		return this.pagina;
 	}
 
 	@GetMapping({ "/Admin-Ver-Funcionarios" })
-	public String cad_O_Func(Model model) {
+	public String cad_O_Func(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		this.repetir="Admin-Ver-Funcionarios";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -3141,30 +3602,30 @@ public class TechShineController {
 
 			Pesquisar_SQL p = new Pesquisar_SQL();
 
-			int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-			int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-			int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi, 0);
+			int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+			int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+			int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi, 0);
 
 			Salvar_SQL s = new Salvar_SQL();
 			int despeza = 0;
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 
-			if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-				renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi, 0);
+			if (quem_E_O_func.equalsIgnoreCase("pca")) {
+				renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi, 0);
 
-				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 				if (despezas.size() > 0) {
 
-					despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+					despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 				}
 
 				model.addAttribute("renda", renda + ",00 Kz");
 			} else {
 
-				renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-						this.id);
+				renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+						id);
 
 				if (renda == 0) {
 					model.addAttribute("renda", "Irregular");
@@ -3200,16 +3661,104 @@ public class TechShineController {
 	 * Mostrar Funcionários,Finança,Alunos e Cursos Cadastrados Pelo Admin
 	 * 
 	 */
-
+	
+	
+	
 	@GetMapping({ "/Admin-Ver-Func-Cord", "/Admin-Ver-Func-Prof", "/Admin-Ver-Func-Sec", "/Admin-Ver-Func-Limp",
 			"/Admin-Ver-Func-Segur", "/Admin-Ver-Func-Tesou", "/Admin-Func-info", "/Admin-Pagar",
-			"/Admin-Cadastrar_Prof", "/Admin-Ver-Func-DP", "/Admin-Ver-Func-DG", "/Admin-Ver-Func-DA" })
+			"/Admin-Cadastrar_Prof", "/Admin-Ver-Func-DP", "/Admin-Ver-Func-DG", "/Admin-Ver-Func-DA",
+			"/webgenius/Admin-Pagar","/Admin-Cadastrar_Aluno",
+			
+			"/webgenius/Admin-Ver-Func-Cord", "/webgenius/Admin-Ver-Func-Prof", "/webgenius/Admin-Ver-Func-Sec", "/webgenius/Admin-Ver-Func-Limp",
+			"/webgenius/Admin-Ver-Func-Segur", "/webgenius/Admin-Ver-Func-Tesou", "/webgenius/Admin-Func-info",
+			"/webgenius/Admin-Cadastrar_Prof", "/webgenius/Admin-Ver-Func-DP", "/webgenius/Admin-Ver-Func-DG", "/Admin-Ver-Func-DA",
+			"/webgenius/Admin-Cadastrar_Aluno"
+	          })
+			  @Async
 	public String admin_Funcionarios(Model model, HttpServletRequest request) {
+		
+		
+		
+		String BD=null;
+		String bi=null;
+		int id=0;
+		String senha=null;
+		String quem_E_O_func=null;
+		String configurarNome=null;
+		String configurarEscola=null;
+		
+		
+		try {
+			Thread.sleep(5000);
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		
+		
+		
+		for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		
+		
+		
 
 		Pesquisar_SQL p = new Pesquisar_SQL();
 		ArrayList<String> funcionarios = p.listarFuncionarios();
-		ArrayList<String> niveis = p.pesquisarTudoEmString(this.BD, "infoescola", "niveis");
-		ArrayList<Curso> cursos = p.Listar_Cursos(this.BD);
+		ArrayList<String> niveis = p.pesquisarTudoEmString(BD, "infoescola", "niveis");
+		ArrayList<Curso> cursos = p.Listar_Cursos(BD);
 		Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
 
 		String requisicao;
@@ -3217,23 +3766,25 @@ public class TechShineController {
 		estado = -5;
 		requisicao = request.getRequestURI();
 
-		if (requisicao.equalsIgnoreCase("/Admin-Ver-Func-Cord")) {
+		if (requisicao.contains("/Admin-Ver-Func-Cord")) {
+			
+			this.repetir="Admin-Ver-Func-Cord";
 
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
 				this.retorno ="Admin-Ver-Func-Cord";
-				ArrayList<String> profs = p.pesquisarTudoEmString(this.BD, "coord_dadospessoais", "nomes");
-				ArrayList<String> bis = p.pesquisarTudoEmString(this.BD, "coord_dadospessoais", "bi");
-				ArrayList<Integer> telefones = p.pesquisarTudoEmInt(this.BD, "coord_dadospessoais", "telefone");
-				ArrayList<Integer> ids = p.pesquisarTudoEmInt(this.BD, "coord_dadospessoais", "id");
-				ArrayList<String> contratos = p.pesquisarTudoEmString(this.BD, "coord_acesso", "contrato");
+				ArrayList<String> profs = p.pesquisarTudoEmString(BD, "Coord_DadosPessoais", "nomes");
+				//ArrayList<String> bis = p.pesquisarTudoEmString(BD, "Coord_DadosPessoais", "bi");
+				ArrayList<Integer> telefones = p.pesquisarTudoEmInt(BD, "Coord_DadosPessoais", "telefone");
+				ArrayList<Integer> ids = p.pesquisarTudoEmInt(BD, "Coord_DadosPessoais", "id");
+				ArrayList<String> contratos = p.pesquisarTudoEmString(BD, "Coord_Acesso", "contrato");
 
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				ArrayList<Funcionario> funcs = new ArrayList<>();
@@ -3243,7 +3794,7 @@ public class TechShineController {
 					func.setNome(profs.get(i));
 					func.setTelefone(telefones.get(i));
 					func.setId(ids.get(i));
-					func.setBi(bis.get(i));
+					//func.setBi(bis.get(i));
 
 					if ((contratos.size() > 0) && (i < contratos.size() - 1)) {
 
@@ -3276,7 +3827,9 @@ public class TechShineController {
 			}
 			return this.pagina;
 
-		} else if (requisicao.equalsIgnoreCase("/Admin-Ver-Func-Prof")) {
+		} else if (requisicao.contains("/Admin-Ver-Func-Prof")) {
+			
+			this.repetir="Admin-Ver-Func-Prof";
 
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
@@ -3284,12 +3837,12 @@ public class TechShineController {
 
 				this.retorno ="Admin-Ver-Func-Prof";
 				
-				ArrayList<String> profs = p.pesquisarTudoEmString(this.BD, "professor_dadospessoais", "nomes");
-				ArrayList<Integer> telefones = p.pesquisarTudoEmInt(this.BD, "professor_dadospessoais", "telefone");
-				ArrayList<Integer> ids = p.pesquisarTudoEmInt(this.BD, "professor_dadospessoais", "id");
-				ArrayList<String> contratos = p.pesquisarTudoEmString(this.BD, "professor_acesso", "contrato");
+				ArrayList<String> profs = p.pesquisarTudoEmString(BD, "Professor_DadosPessoais", "nomes");
+				ArrayList<Integer> telefones = p.pesquisarTudoEmInt(BD, "Professor_DadosPessoais", "telefone");
+				ArrayList<Integer> ids = p.pesquisarTudoEmInt(BD, "Professor_DadosPessoais", "id");
+				ArrayList<String> contratos = p.pesquisarTudoEmString(BD, "Professor_Acesso", "contrato");
 
-				ArrayList<String> bis = p.pesquisarTudoEmString(this.BD, "secretaria_dadospessoais", "bi");
+				//ArrayList<String> bis = p.pesquisarTudoEmString(BD, "Professor_DadosPessoais", "bi");
 				ArrayList<Funcionario> funcs = new ArrayList<>();
 				for (int i = 0; i < profs.size(); i++) {
 
@@ -3297,7 +3850,7 @@ public class TechShineController {
 					func.setNome(profs.get(i));
 					func.setTelefone(telefones.get(i));
 					func.setId(ids.get(i));
-					func.setBi(bis.get(i));
+					//func.setBi(bis.get(i));
 					
 
 					if ((contratos.size() > 0) && (i < contratos.size() - 1)) {
@@ -3312,10 +3865,10 @@ public class TechShineController {
 
 				}
 
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				model.addAttribute("qalunos", qalunos);
@@ -3324,24 +3877,24 @@ public class TechShineController {
 
 				Salvar_SQL s = new Salvar_SQL();
 				int despeza = 0;
-				String mes = s.mesActual(this.BD);
+				String mes = s.mesActual(BD);
 
-				if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				if (quem_E_O_func.equalsIgnoreCase("pca")) {
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 							0);
 
-					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 					if (despezas.size() > 0) {
 
-						despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+						despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 					}
 
 					model.addAttribute("renda", renda + ",00 Kz");
 				} else {
 
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-							"", this.id);
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+							"", id);
 
 					if (renda == 0) {
 						model.addAttribute("renda", "Irregular");
@@ -3369,8 +3922,10 @@ public class TechShineController {
 			}
 			return this.pagina;
 
-		} else if (requisicao.equalsIgnoreCase("/Admin-Ver-Func-Sec")) {
+		} else if (requisicao.contains("/Admin-Ver-Func-Sec")) {
 
+			
+			this.repetir="Admin-Ver-Func-Sec";
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
@@ -3378,16 +3933,16 @@ public class TechShineController {
 				
 				this.retorno ="Admin-Ver-Func-Sec";
 				
-				ArrayList<String> profs = p.pesquisarTudoEmString(this.BD, "secretaria_dadospessoais", "nomes");
-				ArrayList<Integer> telefones = p.pesquisarTudoEmInt(this.BD, "secretaria_dadospessoais", "telefone");
-				ArrayList<Integer> ids = p.pesquisarTudoEmInt(this.BD, "secretaria_dadospessoais", "id");
-				ArrayList<String> contratos = p.pesquisarTudoEmString(this.BD, "secretaria_acesso", "contrato");
+				ArrayList<String> profs = p.pesquisarTudoEmString(BD, "Secretaria_DadosPessoais", "nomes");
+				ArrayList<Integer> telefones = p.pesquisarTudoEmInt(BD, "Secretaria_DadosPessoais", "telefone");
+				ArrayList<Integer> ids = p.pesquisarTudoEmInt(BD, "Secretaria_DadosPessoais", "id");
+				ArrayList<String> contratos = p.pesquisarTudoEmString(BD, "Secretaria_Acesso", "contrato");
 
-				ArrayList<String> bis = p.pesquisarTudoEmString(this.BD, "secretaria_dadospessoais", "bi");
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				//ArrayList<String> bis = p.pesquisarTudoEmString(BD, "Secretaria_DadosPessoais", "bi");
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				model.addAttribute("qalunos", qalunos);
@@ -3396,24 +3951,24 @@ public class TechShineController {
 
 				Salvar_SQL s = new Salvar_SQL();
 				int despeza = 0;
-				String mes = s.mesActual(this.BD);
+				String mes = s.mesActual(BD);
 
-				if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				if (quem_E_O_func.equalsIgnoreCase("pca")) {
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 							0);
 
-					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 					if (despezas.size() > 0) {
 
-						despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+						despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 					}
 
 					model.addAttribute("renda", renda + ",00 Kz");
 				} else {
 
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-							"", this.id);
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+							"", id);
 
 					if (renda == 0) {
 						model.addAttribute("renda", "Irregular");
@@ -3430,7 +3985,7 @@ public class TechShineController {
 					func.setNome(profs.get(i));
 					func.setTelefone(telefones.get(i));
 					func.setId(ids.get(i));
-					func.setBi(bis.get(i));
+					//func.setBi(bis.get(i));
 
 					if ((contratos.size() > 0) && (i < contratos.size() - 1)) {
 
@@ -3462,24 +4017,26 @@ public class TechShineController {
 			}
 			return this.pagina;
 
-		} else if (requisicao.equalsIgnoreCase("/Admin-Ver-Func-DP")) {
+		} else if (requisicao.contains("/Admin-Ver-Func-DP")) {
 
+			
+			this.repetir="Admin-Ver-Func-DP";
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
 				this.retorno ="Admin-Ver-Func-DP";
 				
-				ArrayList<String> profs = p.pesquisarTudoEmString(this.BD, "dp_dadospessoais", "nomes");
-				ArrayList<Integer> telefones = p.pesquisarTudoEmInt(this.BD, "dp_dadospessoais", "telefone");
-				ArrayList<Integer> ids = p.pesquisarTudoEmInt(this.BD, "dp_dadospessoais", "id");
-				ArrayList<String> contratos = p.pesquisarTudoEmString(this.BD, "dp_acesso", "contrato");
+				ArrayList<String> profs = p.pesquisarTudoEmString(BD, "DP_DadosPessoais", "nomes");
+				ArrayList<Integer> telefones = p.pesquisarTudoEmInt(BD, "DP_DadosPessoais", "telefone");
+				ArrayList<Integer> ids = p.pesquisarTudoEmInt(BD, "DP_DadosPessoais", "id");
+				ArrayList<String> contratos = p.pesquisarTudoEmString(BD, "DP_Acesso", "contrato");
 
-				ArrayList<String> bis = p.pesquisarTudoEmString(this.BD, "secretaria_dadospessoais", "bi");
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				//ArrayList<String> bis = p.pesquisarTudoEmString(BD, "Secretaria_DadosPessoais", "bi");
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				model.addAttribute("qalunos", qalunos);
@@ -3488,24 +4045,24 @@ public class TechShineController {
 
 				Salvar_SQL s = new Salvar_SQL();
 				int despeza = 0;
-				String mes = s.mesActual(this.BD);
+				String mes = s.mesActual(BD);
 
-				if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				if (quem_E_O_func.equalsIgnoreCase("pca")) {
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 							0);
 
-					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 					if (despezas.size() > 0) {
 
-						despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+						despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 					}
 
 					model.addAttribute("renda", renda + ",00 Kz");
 				} else {
 
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-							"", this.id);
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+							"", id);
 
 					if (renda == 0) {
 						model.addAttribute("renda", "Irregular");
@@ -3522,7 +4079,7 @@ public class TechShineController {
 					func.setNome(profs.get(i));
 					func.setTelefone(telefones.get(i));
 					func.setId(ids.get(i));
-					func.setBi(bis.get(i));
+					//func.setBi(bis.get(i));
 
 					if ((contratos.size() > 0) && (i < contratos.size() - 1)) {
 
@@ -3553,8 +4110,10 @@ public class TechShineController {
 			}
 			return this.pagina;
 
-		} else if (requisicao.equalsIgnoreCase("/Admin-Ver-Func-DG")) {
+		} else if (requisicao.contains("/Admin-Ver-Func-DG")) {
 
+			
+			this.repetir="Admin-Ver-Func-DG";
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
@@ -3562,16 +4121,16 @@ public class TechShineController {
 				this.retorno ="Admin-Ver-Func-DG";
 				
 				
-				ArrayList<String> profs = p.pesquisarTudoEmString(this.BD, "dg_dadospessoais", "nomes");
-				ArrayList<Integer> telefones = p.pesquisarTudoEmInt(this.BD, "dg_dadospessoais", "telefone");
-				ArrayList<Integer> ids = p.pesquisarTudoEmInt(this.BD, "dg_dadospessoais", "id");
-				ArrayList<String> contratos = p.pesquisarTudoEmString(this.BD, "dg_acesso", "contrato");
+				ArrayList<String> profs = p.pesquisarTudoEmString(BD, "DG_DadosPessoais", "nomes");
+				ArrayList<Integer> telefones = p.pesquisarTudoEmInt(BD, "DG_DadosPessoais", "telefone");
+				ArrayList<Integer> ids = p.pesquisarTudoEmInt(BD, "DG_DadosPessoais", "id");
+				ArrayList<String> contratos = p.pesquisarTudoEmString(BD, "DG_Acesso", "contrato");
  
-				ArrayList<String> bis = p.pesquisarTudoEmString(this.BD, "dg_dadospessoais", "bi");
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				//ArrayList<String> bis = p.pesquisarTudoEmString(BD, "DG_DadosPessoais", "bi");
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				model.addAttribute("qalunos", qalunos);
@@ -3580,24 +4139,24 @@ public class TechShineController {
 
 				Salvar_SQL s = new Salvar_SQL();
 				int despeza = 0;
-				String mes = s.mesActual(this.BD);
+				String mes = s.mesActual(BD);
 
-				if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				if (quem_E_O_func.equalsIgnoreCase("pca")) {
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 							0);
 
-					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 					if (despezas.size() > 0) {
 
-						despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+						despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 					}
 
 					model.addAttribute("renda", renda + ",00 Kz");
 				} else {
 
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-							"", this.id);
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+							"", id);
 
 					if (renda == 0) {
 						model.addAttribute("renda", "Irregular");
@@ -3614,7 +4173,7 @@ public class TechShineController {
 					func.setNome(profs.get(i));
 					func.setTelefone(telefones.get(i));
 					func.setId(ids.get(i));
-					func.setBi(bis.get(i));
+					//func.setBi(bis.get(i));
 
 					if ((contratos.size() > 0) && (i < contratos.size() - 1)) {
 
@@ -3645,24 +4204,26 @@ public class TechShineController {
 			}
 			return this.pagina;
 
-		} else if (requisicao.equalsIgnoreCase("/Admin-Ver-Func-DA")) {
+		} else if (requisicao.contains("/Admin-Ver-Func-DA")) {
 
+			
+			this.repetir="Admin-Ver-Func-DA";
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
 				this.retorno ="Admin-Ver-Func-DA";
 				
-				ArrayList<String> profs = p.pesquisarTudoEmString(this.BD, "da_dadospessoais", "nomes");
-				ArrayList<Integer> telefones = p.pesquisarTudoEmInt(this.BD, "da_dadospessoais", "telefone");
-				ArrayList<Integer> ids = p.pesquisarTudoEmInt(this.BD, "da_dadospessoais", "id");
-				ArrayList<String> contratos = p.pesquisarTudoEmString(this.BD, "da_acesso", "contrato");
+				ArrayList<String> profs = p.pesquisarTudoEmString(BD, "DA_DadosPessoais", "nomes");
+				ArrayList<Integer> telefones = p.pesquisarTudoEmInt(BD, "DA_DadosPessoais", "telefone");
+				ArrayList<Integer> ids = p.pesquisarTudoEmInt(BD, "DA_DadosPessoais", "id");
+				ArrayList<String> contratos = p.pesquisarTudoEmString(BD, "DA_Acesso", "contrato");
 
-				ArrayList<String> bis = p.pesquisarTudoEmString(this.BD, "secretaria_dadospessoais", "bi");
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				//ArrayList<String> bis = p.pesquisarTudoEmString(BD, "Secretaria_DadosPessoais", "bi");
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				model.addAttribute("qalunos", qalunos);
@@ -3671,24 +4232,24 @@ public class TechShineController {
 
 				Salvar_SQL s = new Salvar_SQL();
 				int despeza = 0;
-				String mes = s.mesActual(this.BD);
+				String mes = s.mesActual(BD);
 
-				if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				if (quem_E_O_func.equalsIgnoreCase("pca")) {
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 							0);
 
-					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 					if (despezas.size() > 0) {
 
-						despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+						despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 					}
 
 					model.addAttribute("renda", renda + ",00 Kz");
 				} else {
 
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-							"", this.id);
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+							"", id);
 
 					if (renda == 0) {
 						model.addAttribute("renda", "Irregular");
@@ -3705,7 +4266,7 @@ public class TechShineController {
 					func.setNome(profs.get(i));
 					func.setTelefone(telefones.get(i));
 					func.setId(ids.get(i));
-					func.setBi(bis.get(i));
+					//func.setBi(bis.get(i));
 
 					if ((contratos.size() > 0) && (i < contratos.size() - 1)) {
 
@@ -3738,8 +4299,9 @@ public class TechShineController {
 
 		}
 
-		else if (requisicao.equalsIgnoreCase("/Admin-Ver-Func-Limp")) {
+		else if (requisicao.contains("/Admin-Ver-Func-Limp")) {
 
+			this.repetir="Admin-Ver-Func-Limp";
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
@@ -3748,15 +4310,15 @@ public class TechShineController {
 				this.retorno ="Admin-Ver-Func-Limp";
 				
 				
-				ArrayList<String> profs = p.pesquisarTudoEmString(this.BD, "limpeza_dadospessoais", "nomes");
-				ArrayList<Integer> telefones = p.pesquisarTudoEmInt(this.BD, "limpeza_dadospessoais", "telefone");
-				ArrayList<Integer> ids = p.pesquisarTudoEmInt(this.BD, "limpeza_dadospessoais", "id");
+				ArrayList<String> profs = p.pesquisarTudoEmString(BD, "Limpeza_DadosPessoais", "nomes");
+				ArrayList<Integer> telefones = p.pesquisarTudoEmInt(BD, "Limpeza_DadosPessoais", "telefone");
+				ArrayList<Integer> ids = p.pesquisarTudoEmInt(BD, "Limpeza_DadosPessoais", "id");
 
-				ArrayList<String> bis = p.pesquisarTudoEmString(this.BD, "secretaria_dadospessoais", "bi");
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				//ArrayList<String> bis = p.pesquisarTudoEmString(BD, "Secretaria_DadosPessoais", "bi");
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				model.addAttribute("qalunos", qalunos);
@@ -3765,24 +4327,24 @@ public class TechShineController {
 
 				Salvar_SQL s = new Salvar_SQL();
 				int despeza = 0;
-				String mes = s.mesActual(this.BD);
+				String mes = s.mesActual(BD);
 
-				if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				if (quem_E_O_func.equalsIgnoreCase("pca")) {
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 							0);
 
-					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 					if (despezas.size() > 0) {
 
-						despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+						despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 					}
 
 					model.addAttribute("renda", renda + ",00 Kz");
 				} else {
 
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-							"", this.id);
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+							"", id);
 
 					if (renda == 0) {
 						model.addAttribute("renda", "Irregular");
@@ -3799,7 +4361,7 @@ public class TechShineController {
 					func.setNome(profs.get(i));
 					func.setTelefone(telefones.get(i));
 					func.setId(ids.get(i));
-					func.setBi(bis.get(i));
+					//func.setBi(bis.get(i));
 
 					funcs.add(func);
 
@@ -3820,8 +4382,10 @@ public class TechShineController {
 				this.pagina = nomeDaPagina;
 			}
 			return this.pagina;
-		} else if (requisicao.equalsIgnoreCase("/Admin-Ver-Func-Segur")) {
+		} else if (requisicao.contains("/Admin-Ver-Func-Segur")) {
 
+			
+			this.repetir="Admin-Ver-Func-Segur";
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
@@ -3830,15 +4394,15 @@ public class TechShineController {
 				this.retorno ="Admin-Ver-Func-Segur";
 				
 				
-				ArrayList<String> profs = p.pesquisarTudoEmString(this.BD, "seguranca_dadospessoais", "nomes");
-				ArrayList<Integer> telefones = p.pesquisarTudoEmInt(this.BD, "seguranca_dadospessoais", "telefone");
-				ArrayList<Integer> ids = p.pesquisarTudoEmInt(this.BD, "seguranca_dadospessoais", "id");
+				ArrayList<String> profs = p.pesquisarTudoEmString(BD, "Seguranca_DadosPessoais", "nomes");
+				ArrayList<Integer> telefones = p.pesquisarTudoEmInt(BD, "Seguranca_DadosPessoais", "telefone");
+				ArrayList<Integer> ids = p.pesquisarTudoEmInt(BD, "Seguranca_DadosPessoais", "id");
 
-				ArrayList<String> bis = p.pesquisarTudoEmString(this.BD, "secretaria_dadospessoais", "bi");
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				//ArrayList<String> bis = p.pesquisarTudoEmString(BD, "Secretaria_DadosPessoais", "bi");
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				model.addAttribute("qalunos", qalunos);
@@ -3847,24 +4411,24 @@ public class TechShineController {
 
 				Salvar_SQL s = new Salvar_SQL();
 				int despeza = 0;
-				String mes = s.mesActual(this.BD);
+				String mes = s.mesActual(BD);
 
-				if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				if (quem_E_O_func.equalsIgnoreCase("pca")) {
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 							0);
 
-					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 					if (despezas.size() > 0) {
 
-						despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+						despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 					}
 
 					model.addAttribute("renda", renda + ",00 Kz");
 				} else {
 
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-							"", this.id);
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+							"", id);
 
 					if (renda == 0) {
 						model.addAttribute("renda", "Irregular");
@@ -3881,7 +4445,7 @@ public class TechShineController {
 					func.setNome(profs.get(i));
 					func.setTelefone(telefones.get(i));
 					func.setId(ids.get(i));
-					func.setBi(bis.get(i));
+					//func.setBi(bis.get(i));
 
 					funcs.add(func);
 
@@ -3903,7 +4467,9 @@ public class TechShineController {
 			}
 			return this.pagina;
 
-		} else if (requisicao.equalsIgnoreCase("/Admin-Ver-Func-Tesou")) {
+		} else if (requisicao.contains("/Admin-Ver-Func-Tesou")) {
+			
+			this.repetir="Admin-Ver-Func-Tesou";
 
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
@@ -3913,16 +4479,16 @@ public class TechShineController {
 				this.retorno ="Admin-Ver-Func-Tesou";
 				
 				
-				ArrayList<String> profs = p.pesquisarTudoEmString(this.BD, "tesouraria_dadospessoais", "nomes");
-				ArrayList<Integer> telefones = p.pesquisarTudoEmInt(this.BD, "tesouraria_dadospessoais", "telefone");
-				ArrayList<Integer> ids = p.pesquisarTudoEmInt(this.BD, "tesouraria_dadospessoais", "id");
-				ArrayList<String> contratos = p.pesquisarTudoEmString(this.BD, "tesouraria_acesso", "contrato");
-				ArrayList<String> bis = p.pesquisarTudoEmString(this.BD, "secretaria_dadospessoais", "bi");
+				ArrayList<String> profs = p.pesquisarTudoEmString(BD, "Tesouraria_DadosPessoais", "nomes");
+				ArrayList<Integer> telefones = p.pesquisarTudoEmInt(BD, "Tesouraria_DadosPessoais", "telefone");
+				ArrayList<Integer> ids = p.pesquisarTudoEmInt(BD, "Tesouraria_DadosPessoais", "id");
+				ArrayList<String> contratos = p.pesquisarTudoEmString(BD, "Tesouraria_Acesso", "contrato");
+				//ArrayList<String> bis = p.pesquisarTudoEmString(BD, "Secretaria_DadosPessoais", "bi");
 
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				model.addAttribute("qalunos", qalunos);
@@ -3931,24 +4497,24 @@ public class TechShineController {
 
 				Salvar_SQL s = new Salvar_SQL();
 				int despeza = 0;
-				String mes = s.mesActual(this.BD);
+				String mes = s.mesActual(BD);
 
-				if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				if (quem_E_O_func.equalsIgnoreCase("pca")) {
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 							0);
 
-					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 					if (despezas.size() > 0) {
 
-						despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+						despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 					}
 
 					model.addAttribute("renda", renda + ",00 Kz");
 				} else {
 
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-							"", this.id);
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+							"", id);
 
 					if (renda == 0) {
 						model.addAttribute("renda", "Irregular");
@@ -3965,7 +4531,7 @@ public class TechShineController {
 					func.setNome(profs.get(i));
 					func.setTelefone(telefones.get(i));
 					func.setId(ids.get(i));
-					func.setBi(bis.get(i));
+					//func.setBi(bis.get(i));
 
 					if ((contratos.size() > 0) && (i < contratos.size() - 1)) {
 
@@ -3982,7 +4548,7 @@ public class TechShineController {
 
 				model.addAttribute("nome", configurarNome);
 				model.addAttribute("escola", configurarEscola);
-				nomeDaPagina = "TechShine/Admin/verSeguranca";
+				nomeDaPagina = "TechShine/Admin/verTesoureiros";
 				this.pagina = nomeDaPagina;
 				// }
 
@@ -3993,7 +4559,9 @@ public class TechShineController {
 				this.pagina = nomeDaPagina;
 			}
 			return this.pagina;
-		} else if (requisicao.equalsIgnoreCase("/Admin-Func-info")) {
+		} else if (requisicao.contains("/Admin-Func-info")) {
+			
+			this.repetir="Admin-Func-info";
 
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
@@ -4012,7 +4580,7 @@ public class TechShineController {
 				}
 
 				for (String cur : cursosAUsar) {
-					ArrayList<String> desciplinas = p.pesquisarTudoEmString(this.BD, "cursos_disciplinas", cur);
+					ArrayList<String> desciplinas = p.pesquisarTudoEmString(BD, "Cursos_Disciplinas", cur);
 					todasDesciplinas.add(desciplinas);
 				}
 
@@ -4021,10 +4589,10 @@ public class TechShineController {
 				ArrayList<Funcionario> funcs = new ArrayList<>();
 				funcs.add(this.func);
 
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				model.addAttribute("qalunos", qalunos);
@@ -4033,24 +4601,24 @@ public class TechShineController {
 
 				Salvar_SQL s = new Salvar_SQL();
 				int despeza = 0;
-				String mes = s.mesActual(this.BD);
+				String mes = s.mesActual(BD);
 
-				if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				if (quem_E_O_func.equalsIgnoreCase("pca")) {
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 							0);
 
-					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 					if (despezas.size() > 0) {
 
-						despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+						despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 					}
 
 					model.addAttribute("renda", renda + ",00 Kz");
 				} else {
 
-					renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-							"", this.id);
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+							"", id);
 
 					if (renda == 0) {
 						model.addAttribute("renda", "Irregular");
@@ -4081,8 +4649,132 @@ public class TechShineController {
 				this.pagina = nomeDaPagina;
 			}
 			return this.pagina;
-		} else if (requisicao.equalsIgnoreCase("/Admin-Cadastrar_Prof")) {
+		} else if (requisicao.contains("/Admin-Cadastrar_Aluno")) {
+			
+			
+			
+			
+			this.repetir="Admin-Cadastrar_Aluno";
+			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
+				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+
+
+				
+				int renda = 0;
+
+				Salvar_SQL s = new Salvar_SQL();
+				int despeza = 0;
+				String mes = s.mesActual(BD);
+
+				
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				
+
+				model.addAttribute("qalunos", qalunos);
+				model.addAttribute("qfunc", qfunc);
+				model.addAttribute("qCurso", QCurso);
+
+				
+				
+				
+				
+				if (quem_E_O_func.equalsIgnoreCase("pca")) {
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin",
+							bi, 0);
+
+					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
+
+					if (despezas.size() > 0) {
+
+						despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
+					}
+
+					model.addAttribute("renda", renda + ",00 Kz");
+					this.pagina = "TechShine/Admin/aluno";
+				} else {
+
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes,
+							"id", "", id);
+
+					if (renda == 0) {
+						model.addAttribute("renda", "Irregular");
+					} else {
+						model.addAttribute("renda", "Regular");
+					}
+					
+					if (quem_E_O_func.equalsIgnoreCase("secretaria")) {
+						
+						this.repetir="Secretaria-Cadastrar_Aluno";
+
+
+					    renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+								"", id);
+					    
+					    ArrayList<Integer> propinas = p.pesquisarTudoEmInt(BD, "Func_Diario", "Prop");
+						ArrayList<Integer> matri = p.pesquisarTudoEmInt(BD, "Func_Diario", "MatEConf");
+						ArrayList<Integer> servicos = p.pesquisarTudoEmInt(BD, "Func_Diario", "servicos");
+						
+						Operacoes op = new Operacoes();
+						
+						
+						int p2 = op.operacoesAdicionais(propinas);
+						int mc = op.operacoesAdicionais(matri);
+						int os = op.operacoesAdicionais(servicos);
+					    
+					    
+						
+						if (renda == 0) {
+							model.addAttribute("renda", "Irregular");
+						} else {
+							model.addAttribute("renda", "Regular");
+						}
+
+
+						
+						Date d = new Date();
+						SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+						
+						model.addAttribute("data", sdf.format(d));
+						model.addAttribute("p", p2);
+						model.addAttribute("mc", mc);
+						model.addAttribute("os", os);
+						
+						this.pagina = "WebGnius/secretaria/aluno";
+					}else {
+						this.pagina = "TechShine/Admin/aluno";
+					}
+					
+
+				}
+				
+				DadosAdicionais da = new DadosAdicionais();
+				
+				String curso = da.getAluno().getCurso();
+				String nivel = da.getAluno().getNivel();
+				String turno = da.getAluno().getTurno();
+				model.addAttribute("curso", curso);
+				model.addAttribute("nivel", nivel);
+				model.addAttribute("turno", turno);
+				model.addAttribute("turmasVazia", da.getTurmas());
+				model.addAttribute("turmasCheias", this.turmas_Indisponiveis);
+				model.addAttribute("nome", configurarNome);
+				model.addAttribute("escola", configurarEscola);
+
+				// }
+
+			} else {
+
+				estado = 0;
+				nomeDaPagina = "redirect:login";
+				this.pagina = nomeDaPagina;
+			}
+		}   else if (requisicao.contains("/Admin-Cadastrar_Prof")) {
+
+			
+			this.repetir="Admin-Cadastrar_Prof";
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
@@ -4091,7 +4783,7 @@ public class TechShineController {
 				this.func.setCurso(curso);
 				String desc;
 
-				ArrayList<String> desciplinas = p.pesquisarTudoEmString(this.BD, "cursos_disciplinas", curso);
+				ArrayList<String> desciplinas = p.pesquisarTudoEmString(BD, "Cursos_Disciplinas", curso);
 				ArrayList<String> desciplinasCertas = new ArrayList<>();
 				for (String desciplina : desciplinas) {
 
@@ -4105,7 +4797,7 @@ public class TechShineController {
 				String nivel = this.func.getNivel();
 				this.func.setNivel(nivel);
 
-				ArrayList<String> turmas = p.Listar_TurmasDoCurso(this.BD, turno, nivel, curso);
+				ArrayList<String> turmas = p.Listar_TurmasDoCurso(BD, turno, nivel, curso);
 
 				if (turmas == null) {
 
@@ -4128,24 +4820,24 @@ public class TechShineController {
 
 					Salvar_SQL s = new Salvar_SQL();
 					int despeza = 0;
-					String mes = s.mesActual(this.BD);
+					String mes = s.mesActual(BD);
 
-					if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-						renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin",
-								this.bi, 0);
+					if (quem_E_O_func.equalsIgnoreCase("pca")) {
+						renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin",
+								bi, 0);
 
-						ArrayList<Integer> despezas = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza");
+						ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
 
 						if (despezas.size() > 0) {
 
-							despeza = p.pesquisarTudoEmInt(this.BD, "adminfinanca", "despeza").get(0);
+							despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
 						}
 
 						model.addAttribute("renda", renda + ",00 Kz");
 					} else {
 
-						renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes,
-								"id", "", this.id);
+						renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes,
+								"id", "", id);
 
 						if (renda == 0) {
 							model.addAttribute("renda", "Irregular");
@@ -4175,19 +4867,19 @@ public class TechShineController {
 				nomeDaPagina = "redirect:login";
 				this.pagina = nomeDaPagina;
 			}
-			return this.pagina;
 		}
 
-		else if (requisicao.equalsIgnoreCase("/Admin-Pagar")) {
+		else if (requisicao.contains("/Admin-Pagar")) {
 
+			this.repetir="Admin-Pagar";
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
 				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				model.addAttribute("qalunos", qalunos);
@@ -4208,17 +4900,21 @@ public class TechShineController {
 				nomeDaPagina = "redirect:login";
 				this.pagina = nomeDaPagina;
 			}
-			return this.pagina;
 		}
-
-		return nomeDaPagina;
+		
+	}catch(Exception e){
+		
+		e.printStackTrace();
 	}
 
-	@PostMapping({ "/Admin-Pagar" })
+		return this.pagina;
+	}
+
+	@PostMapping({ "/Admin-Pagar" })  
 	public String pagar(Pagar pagar, Model model) {
 
 		Salvar_SQL s = new Salvar_SQL();
-		s.adminPagar(this.BD, this.bi, pagar.getPagar());
+		s.adminPagar(BD, bi, pagar.getPagar());
 
 		model.addAttribute("resultado", "Todos Funcionários foram Pagos !");
 		// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
@@ -4233,9 +4929,301 @@ public class TechShineController {
 	 * return "TechShine/Admin/turma"; }
 	 * 
 	 */
+	
+	@GetMapping({"/admin-Professor-Adicional","/webgenius/admin-Professor-Adicional"})
+    public String admin_Prof_Adicional(Model model,HttpServletRequest request){
+    	
+    	
+Cookie[] cookies = request.getCookies();
 
-	@GetMapping({ "/Admin-Info", "/Secretaria-Info" })
-	public String admin_Info(Model model) {
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+
+		String nomeDaPagina;
+
+		
+		this.repetir="admin-Professor-Adicional";
+		if (entrarNoSistema.podeAbrirAPagina(senha)) {
+
+			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+
+			
+			Salvar_SQL s = new Salvar_SQL();
+			Pesquisar_SQL p = new Pesquisar_SQL();
+			Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
+			
+			
+			String desc;
+			
+			
+			ArrayList<String> desciplinasCertas = new ArrayList<>();
+			
+			ArrayList<String> turnos = new ArrayList<>();
+			turnos.add("Manhã");
+			turnos.add("Tarde");
+			turnos.add("Noite");
+			
+			
+			ArrayList<String> turmasManha = p.pesquisarTudoEmString(BD, "Controle_Turmas", "Manha");
+			ArrayList<String> turmasTarde = p.pesquisarTudoEmString(BD, "Controle_Turmas", "Tarde");
+			ArrayList<String> turmasNoite = p.pesquisarTudoEmString(BD, "Controle_Turmas", "Noite");
+
+			
+			ArrayList<Curso> cursos = p.Listar_Cursos(BD);
+			ArrayList<String> tCursos = new ArrayList<>();
+			
+
+			for (Curso c : cursos) {
+
+				tCursos.add(c.getNome());
+			}
+
+			for (String curso : tCursos) {
+				
+				
+				ArrayList<String> desciplinas = p.pesquisarTudoEmString(BD, "Cursos_Disciplinas", curso);
+				
+				for (String desciplina : desciplinas) {
+
+					desc = ta.tirarCaracteres_RetornandoA_A_Lista(desciplina).get(2);
+					desciplinasCertas.add(desc);
+				}
+			}
+			
+	
+
+				ArrayList<Funcionario> funcs = new ArrayList<>();
+				funcs.add(this.func);
+
+				int renda = 0;
+
+				int despeza = 0;
+				String mes = s.mesActual(BD);
+
+				if (quem_E_O_func.equalsIgnoreCase("pca")) {
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin",
+							bi, 0);
+
+					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
+
+					if (despezas.size() > 0) {
+
+						despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
+					}
+
+					model.addAttribute("renda", renda + ",00 Kz");
+				} else {
+
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes,
+							"id", "", id);
+
+					if (renda == 0) {
+						model.addAttribute("renda", "Irregular");
+					} else {
+						model.addAttribute("renda", "Regular");
+					}
+
+				}
+				
+				ArrayList<String> niveis = p.pesquisarTudoEmString(BD, "infoescola", "niveis");
+
+				
+				
+				
+				model.addAttribute("cursos", tCursos);
+				model.addAttribute("turnos", turnos);
+				model.addAttribute("niveis", niveis);
+				
+				model.addAttribute("turmaM", turmasManha);
+				model.addAttribute("turmaT", turmasTarde);
+				model.addAttribute("turmaN", turmasNoite);
+				
+				
+				model.addAttribute("desciplinas", desciplinasCertas);
+				model.addAttribute("prof", this.professor);
+				model.addAttribute("nome", configurarNome);
+				model.addAttribute("escola", configurarEscola);
+
+				nomeDaPagina = "TechShine/Admin/cadastrar_Prof2";
+				this.pagina = nomeDaPagina;
+
+			
+
+			// }
+
+		} else {
+
+			estado = 0;
+			nomeDaPagina = "redirect:login";
+			this.pagina = nomeDaPagina;
+		}
+		
+		
+		return this.pagina;
+	
+    }
+	
+	
+	@PostMapping({"/admin-Professor-Adicional","/webgenius/admin-Professor-Adicional"})
+    public String admin_Prof_Adicional(Model model,Curso curso){
+		
+		
+		Salvar_SQL s = new Salvar_SQL();
+		
+		s.inserir_Disciplinas_Prof2(BD, curso.getCursos(), this.professor, curso.getDisciplinas(), curso.getNiveis(), curso.getTurmas(), 0, biFunc, curso.getTurnos());
+		
+		this.pagina ="redirect:Cadastrar-Sistema-5b";
+		return this.pagina;
+	}
+	
+	
+	@GetMapping({ "/Admin-Info","/webgenius/Admin-Info"})
+	@Async
+	public String admin_Info(Model model,HttpServletRequest request, HttpServletResponse response) {
+		
+		
+		SessaoActual sa = new SessaoActual();
+		HttpSession session = sa.retornarSessao();
+		
+		String BD=null;
+		String bi=null;
+		int id=0;
+		String senha=null;
+		String quem_E_O_func=null;
+		String configurarNome=null;
+		String configurarEscola=null;
+		
+		
+		try {
+			
+			Thread.sleep(5000);
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+	
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		
+		
+		
 
 		Pesquisar_SQL p = new Pesquisar_SQL();
 		Salvar_SQL s = new Salvar_SQL();
@@ -4246,42 +5234,14 @@ public class TechShineController {
 
 			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
 
-			if (this.quem_E_O_func.equalsIgnoreCase("secretaria")) {
-
-				String mes = s.mesActual(this.BD);
-
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-						"", this.id);
-				int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-				int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-				int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
-
-				if (renda == 0) {
-					model.addAttribute("renda", "Irregular");
-				} else {
-					model.addAttribute("renda", "Regular");
-
-				}
+			if (quem_E_O_func.equalsIgnoreCase("PCA")) {
 
 				
-				Date d = new Date();
-				SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-				
-				model.addAttribute("data", sdf.format(d));
-				
-				
-				model.addAttribute("p", p2);
-				model.addAttribute("mc", mc);
-				model.addAttribute("os", os);
-
-				nomeDaPagina = "WebGnius/secretaria/informacaoDoAluno";
-
-			} else if (this.quem_E_O_func.equalsIgnoreCase("PCA")) {
-
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "adminfinanca", "renda", "bi_admin", this.bi,
+				this.repetir="Admin-Info";
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
 						0);
 
 				model.addAttribute("qalunos", qalunos);
@@ -4293,14 +5253,17 @@ public class TechShineController {
 
 			} else {
 
-				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qalunos", "id", "", 1);
-				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "qfunc", "id", "", 1);
-				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "infoescola", "QCurso", "id", "", 1);
+				
+				this.repetir="Admin-Info";
+				
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
 
-				String mes = s.mesActual(this.BD);
+				String mes = s.mesActual(BD);
 
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-						"", this.id);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+						"", id);
 
 				if (renda == 0) {
 					model.addAttribute("renda", "Irregular");
@@ -4318,6 +5281,10 @@ public class TechShineController {
 			}
 
 			model.addAttribute("resultado", "Aluno Inserido Com Sucesso !");
+			
+			//configurarNome = (String) RequestContextHolder.getRequestAttributes().getAttribute(TechShineController.nome, RequestAttributes.SCOPE_SESSION);
+			
+			
 			model.addAttribute("nome", configurarNome);
 			model.addAttribute("escola", configurarEscola);
 
@@ -4335,6 +5302,10 @@ public class TechShineController {
 			nomeDaPagina = "redirect:login";
 			this.pagina = nomeDaPagina;
 		}
+		
+	}catch (Exception e) {
+		e.printStackTrace();
+	}
 		return this.pagina;
 
 	}
@@ -4342,6 +5313,7 @@ public class TechShineController {
 	@GetMapping("/Admin-Info-Curso")
 	public String admin_Info_Curso(HttpServletRequest request) {
 
+		this.repetir="Admin-Info-Curso";
 		estado = -5;
 		String nomeDaPagina = null;
 
@@ -4373,559 +5345,84 @@ public class TechShineController {
 	 *         Feito por
 	 * @author Jose Euclides Pedro Pereira dos Santos
 	 */
-	@GetMapping("/Aluno-Notas")
-	public String boletimDeNotas(Model model) {
-
-		String nomeDaPagina = null;
-		estado = -5;
-
-		if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-			Salvar_SQL s = new Salvar_SQL();
-			Pesquisar_SQL p = new Pesquisar_SQL();
-			Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
-
-			String mes = s.mesActual(this.BD);
-			Date d = new Date();
-			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
-			int nDeEstudante = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func, "NProc", "id", "",
-					this.id);
-
-			if (renda == 0) {
-
-				nomeDaPagina = "TechShine/Aluno/info1";
-			} else {
-
-				String turma = this.turmaAluno;
-				String nivel = "";
-
-				ArrayList<String> niveis = new ArrayList<>();
-
-				niveis.add("1");
-				niveis.add("2");
-				niveis.add("3");
-				niveis.add("4");
-				niveis.add("5");
-				niveis.add("6");
-				niveis.add("7");
-				niveis.add("8");
-				niveis.add("9");
-				niveis.add("10");
-				niveis.add("11");
-				niveis.add("12");
-				niveis.add("13");
-
-				String[] b = turma.split("_");
-
-				turma = b[1];
-				System.out.println("Turma Aqui: " + turma);
-
-				for (String cadaC : niveis) {
-
-					System.out.println("cadaC: " + cadaC);
-					if (turma.endsWith(cadaC)) {
-
-						System.out.println("Niveis Iguais");
-						nivel = cadaC;
-					}
-				}
-
-				System.out.println("Nivel " + nivel);
-				String curso = p.pesquisarUmConteudo_Numa_Linha_String(this.BD, this.quem_E_O_func, "curso", "id", "",
-						1);
-				ArrayList<String> desciplinas = p.pesquisarTudoEmString(BD, "cursos_disciplinas", curso);
-				String situacao = p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "cursos", "Situacao", "nome", curso,
-						0);
-				curso = curso.substring(0, 3) + "" + nivel;
-
-				ArrayList<String> desc = new ArrayList<>();
-				ArrayList<String> dessciplinasFiltrada = new ArrayList<>();
-				ArrayList<String> dessciplinasFiltrada2 = new ArrayList<>();
-
-				String desc2;
-
-				if ((turma.endsWith(curso))||
-						(turma.endsWith(curso.toLowerCase()))) {
-
-					for (String desciplina : desciplinas) {
-						System.out.println("Disci: " + desciplina);
-
-						if (desciplina.contains(nivel)) {
-
-							desc = ta.tirarCaracteres_RetornandoA_A_Lista(desciplina);
-							desc2 = desc.get(desc.size() - 1);
-
-							System.out.println("Desc2: " + desc2);
-
-							dessciplinasFiltrada.add(ta.tirarCaracteres(desc2));
-							dessciplinasFiltrada2.add(desc2);
-						}
-					}
-				}
-
-				for (String dd : dessciplinasFiltrada2) {
-
-					System.out.println("Desciplina: " + dd);
-				}
-				ArrayList<Aluno> dados = new ArrayList<>();
-
-				ArrayList<String> situacao2 = new ArrayList<>();
-
-				situacao2.add("A");
-				situacao2.add("P");
-				situacao2.add("E");
-
-				for (int i = 0; i < dessciplinasFiltrada.size(); i++) {
-
-					sair: for (String cadaCC : situacao2) {
-
-						if (situacao.equalsIgnoreCase("A")) {
-
-							Aluno aluno = new Aluno();
-
-							aluno.setNota(p.pesquisarUmConteudo_Numa_Linha_Int(this.BD,
-									this.quem_E_O_func + "_Avaliacao", dessciplinasFiltrada.get(i), "id", "", this.id));
-							aluno.setDisciplina(dessciplinasFiltrada2.get(i));
-							aluno.setSituacao("");
-
-							dados.add(aluno);
-
-							break sair;
-						} else if (situacao.equalsIgnoreCase("P")) {
-
-							Aluno aluno = new Aluno();
-
-							aluno.setNota(p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_Prova",
-									dessciplinasFiltrada.get(i), "id", "", this.id));
-							aluno.setDisciplina(dessciplinasFiltrada2.get(i));
-							aluno.setSituacao("");
-
-							dados.add(aluno);
-
-							break sair;
-						} else if (situacao.equalsIgnoreCase("E")) {
-
-							Aluno aluno = new Aluno();
-
-							aluno.setNota(p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_Meedia",
-									dessciplinasFiltrada.get(i), "id", "", this.id));
-							aluno.setDisciplina(dessciplinasFiltrada2.get(i));
-							aluno.setSituacao(p.pesquisarUmConteudo_Numa_Linha_String(this.BD,
-									this.quem_E_O_func + "_Meedia", "Situacao", "id", "", this.id));
-
-							dados.add(aluno);
-
-							break sair;
-						}
-					}
-
-				}
-
-				model.addAttribute("aluno", dados);
-				nomeDaPagina = "TechShine/Aluno/boletim";
-			}
-
-			if (renda == 0) {
-				model.addAttribute("renda", "Irregular");
-				model.addAttribute("situacao1", "Indisponivel");
-			} else {
-				model.addAttribute("renda", "Regular");
-				model.addAttribute("situacao1", "Disponivel");
-			}
-
-			model.addAttribute("numero", nDeEstudante);
-
-			model.addAttribute("data", sdf.format(d));
-
-			model.addAttribute("nome", configurarNome);
-			model.addAttribute("escola", configurarEscola);
-
-			this.pagina = nomeDaPagina;
-			// }
-
-		} else {
-
-			estado = 0;
-			nomeDaPagina = "redirect:login";
-			this.pagina = nomeDaPagina;
-		}
-		return this.pagina;
-
-	}
-
-	@GetMapping("/Aluno-Diario")
-	public String diario(HttpServletRequest request) {
-
-		String nomeDaPagina = null;
-		estado = -5;
-
-		if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-			nomeDaPagina = "TechShine/Aluno/diario";
-			this.pagina = nomeDaPagina;
-			// }
-
-		} else {
-
-			estado = 0;
-			nomeDaPagina = "redirect:login";
-			this.pagina = nomeDaPagina;
-		}
-		return this.pagina;
-
-	}
-
-	@GetMapping("/Aluno-Horario")
-	public String horario(HttpServletRequest request) {
-
-		String nomeDaPagina = null;
-		estado = -5;
-
-		if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-			nomeDaPagina = "TechShine/Aluno/horario";
-			this.pagina = nomeDaPagina;
-			// }
-
-		} else {
-
-			estado = 0;
-			nomeDaPagina = "redirect:login";
-			this.pagina = nomeDaPagina;
-		}
-		return this.pagina;
-
-	}
-
-	@GetMapping("/Aluno")
-	public String inicio(Model model) {
-
-		String nomeDaPagina = null;
-		estado = -5;
-
-		if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-			Salvar_SQL s = new Salvar_SQL();
-			Pesquisar_SQL p = new Pesquisar_SQL();
-
-			String mes = s.mesActual(this.BD);
-			Date d = new Date();
-			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
-			int nDeEstudante = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func, "NProc", "id", "",
-					this.id);
-
-			if (renda == 0) {
-				model.addAttribute("renda", "Irregular");
-				model.addAttribute("situacao1", "Indisponivel");
-			} else {
-				model.addAttribute("renda", "Regular");
-				model.addAttribute("situacao1", "Disponivel");
-			}
-
-			model.addAttribute("numero", nDeEstudante);
-			model.addAttribute("data", sdf.format(d));
-
-			model.addAttribute("nome", configurarNome);
-			model.addAttribute("escola", configurarEscola);
-
-			nomeDaPagina = "TechShine/Aluno/inicio";
-			this.pagina = nomeDaPagina;
-			// }
-
-		} else {
-
-			estado = 0;
-			nomeDaPagina = "redirect:login";
-			this.pagina = nomeDaPagina;
-		}
-		return this.pagina;
-
-	}
-
-	@GetMapping("/Aluno-Materias")
-	public String material(Model model) {
-
-		String nomeDaPagina = null;
-		estado = -5;
-
-		if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-			Salvar_SQL s = new Salvar_SQL();
-			Pesquisar_SQL p = new Pesquisar_SQL();
-			Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
-
-			String mes = s.mesActual(this.BD);
-			Date d = new Date();
-			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
-			int nDeEstudante = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func, "NProc", "id", "",
-					this.id);
-
-			String turma = this.turmaAluno;
-			String nivel = "";
-
-			ArrayList<String> niveis = new ArrayList<>();
-
-			niveis.add("1");
-			niveis.add("2");
-			niveis.add("3");
-			niveis.add("4");
-			niveis.add("5");
-			niveis.add("6");
-			niveis.add("7");
-			niveis.add("8");
-			niveis.add("9");
-			niveis.add("10");
-			niveis.add("11");
-			niveis.add("12");
-			niveis.add("13");
-
-			String[] b = turma.split("_");
-
-			turma = b[1];
-			System.out.println("Turma Aqui: " + turma);
-
-			for (String cadaC : niveis) {
-
-				System.out.println("cadaC: " + cadaC);
-				if (turma.endsWith(cadaC)) {
-
-					System.out.println("Niveis Iguais");
-					nivel = cadaC;
-				}
-			}
-
-			System.out.println("Nivel " + nivel);
-			String curso = p.pesquisarUmConteudo_Numa_Linha_String(this.BD, this.quem_E_O_func, "curso", "id", "", 1);
-			ArrayList<String> desciplinas = p.pesquisarTudoEmString(BD, "cursos_disciplinas", curso);
-			curso = curso.substring(0, 3) + "" + nivel;
-
-			ArrayList<String> desc = new ArrayList<>();
-			ArrayList<String> dessciplinasFiltrada2 = new ArrayList<>();
-
-			String desc2;
+	
+
+	    @Override
+	    @Async
+		public String aluno3(Aluno aluno) {
 			
-			if (turma.endsWith(curso)||(turma.endsWith(curso.toLowerCase()))) {
-
-				for (String desciplina : desciplinas) {
-					System.out.println("Disci: " + desciplina);
-
-					if (desciplina.contains(nivel)) {
-
-						desc = ta.tirarCaracteres_RetornandoA_A_Lista(desciplina);
-						desc2 = desc.get(desc.size() - 1);
-
-						System.out.println("Desc2: " + desc2);
-
-						dessciplinasFiltrada2.add(desc2);
+	
+	    	DadosAdicionais da = new DadosAdicionais();
+	    	try {
+				Thread.sleep(5000);
+				
+				
+				
+				Salvar_SQL s = new Salvar_SQL();
+				Pesquisar_SQL p = new Pesquisar_SQL();
+				
+				this.disciplina = aluno.getDisciplina();
+				
+				
+				 Usuario usuario = p.retornaUsuario2(BD,aluno.getIdAluno());
+					
+					
+					boolean existeuUsuario = usuario.isExisteUsuario();
+					
+					if(existeuUsuario){
+						
+						
+						da.setDisciplina(disciplina);
+						da.setTurma(turnoAluno);
+						
+						quem_E_O_func = usuario.getTurma();
+						id = usuario.getId();
+						
+						
 					}
+				
+				// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
+				
+				
+				
+				String mes = s.mesActual(BD);
+				
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+						id);
+				
+		
+				if (renda == 0) {
+		
+					pagina = "redirect:info1";
+				}else {
+					pagina = "redirect:Aluno-Materias-2";  
 				}
+				
+				
+				
+			
+			}catch (Exception e) {
+				e.printStackTrace();
 			}
-
-			for (String dd : dessciplinasFiltrada2) {
-
-				System.out.println("Desciplina: " + dd);
-			}
-
-			if (renda == 0) {
-				model.addAttribute("renda", "Irregular");
-				model.addAttribute("situacao1", "Indisponivel");
-			} else {
-				model.addAttribute("renda", "Regular");
-				model.addAttribute("situacao1", "Disponivel");
-			}
-
-			model.addAttribute("desciplinas", dessciplinasFiltrada2);
-			model.addAttribute("numero", nDeEstudante);
-			model.addAttribute("data", sdf.format(d));
-
-			model.addAttribute("nome", configurarNome);
-			model.addAttribute("escola", configurarEscola);
-
-			nomeDaPagina = "TechShine/Aluno/material";
-			this.pagina = nomeDaPagina;
-			// }
-
-		} else {
-
-			estado = 0;
-			nomeDaPagina = "redirect:login";
-			this.pagina = nomeDaPagina;
+	    	
+	    	
+	    	da.setPagina(pagina);
+	    	return pagina;
 		}
-		return this.pagina;
+	
+	
 
-	}
-
-	@PostMapping({ "/Aluno-Materias" })
-	public String aluno3(Aluno aluno) {
-
-		this.disciplina = aluno.getDisciplina();
-		// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
-		Salvar_SQL s = new Salvar_SQL();
-		Pesquisar_SQL p = new Pesquisar_SQL();
-		
-		
-		String mes = s.mesActual(this.BD);
-		
-		int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-				this.id);
-		int nDeEstudante = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func, "NProc", "id", "",
-				this.id);
-
-		if (renda == 0) {
-
-			this.pagina = "TechShine/Aluno/info1";
-		}else {
-			this.pagina = "redirect:Aluno-Materias-2";
-		}
-		
-		
-		return this.pagina;
-	}
-
-	@GetMapping("/Aluno-Materias-2")
-	public String aluno4(Model model, HttpServletResponse response) {
-
-		String nomeDaPagina = null;
-		estado = -5;
-
-		if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-			Salvar_SQL s = new Salvar_SQL();
-			Pesquisar_SQL p = new Pesquisar_SQL();
-			Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
-
-			String mes = s.mesActual(this.BD);
-			Date d = new Date();
-			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
-			int nDeEstudante = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func, "NProc", "id", "",
-					this.id);
-
-			String desciplina = ta.tirarCaracteres(this.disciplina);
-
-			ArrayList<String> minhasMaterias = new ArrayList<>();
-
-			ArrayList<String> enderecos = p.pesquisarTudoEmString(this.BD, "Materias_Online", "descricao");
-
-			boolean siglaIgual = false;
-			ArrayList<String> siglas = p.pesquisarTudoEmString(this.BD, "Materias_Online", "sigla");
-
-			sair: for (String c : siglas) {
-
-				if ((this.turmaAluno.contains(c))||
-						(this.turmaAluno.contains(c.toLowerCase()))) {
-
-					siglaIgual = true;
-					break sair;
-				}
-			}
-
-			String ficheiro;
-			String data;
-			String endereco;
-
-			ArrayList<String> conteudos = new ArrayList<>();
-			for (String c : enderecos) {
-
-				endereco = p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "Materias_Online", "endereco", "Descricao",
-						c, 0);
-
-				System.out.println("Descricao: " + c);
-				System.out.println("ficheiro: " + endereco);
-				System.out.println("Desciplina: " + desciplina);
-				if ((endereco.contains(desciplina)) && (siglaIgual) && (endereco.contains(this.turmaAluno))) {
-
-					System.out.println("Iguais");
-
-					data = p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "Materias_Online", "Data", "Descricao", c,
-							0);
-					ficheiro = p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "Materias_Online", "Ficheiro",
-							"Descricao", c, 0);
-
-					System.out.println("Data: " + data);
-					System.out.println("ficheiro: " + ficheiro);
-					System.out.println("Endereco: " + endereco);
-
-					conteudos.add(data + " - " + c);
-					this.conteudos3.add(data + " - " + c + ";" + endereco + ";" + ficheiro);
-				}
-
-			}
-
-			for (int i = conteudos.size() - 1; i >= 0; i--) {
-
-				minhasMaterias.add(conteudos.get(i));
-
-			}
-
-			// Aqui Vou Fazer Uma Pesquisa No Servidor PAra Ver
-			// As materias de Uma Disciplina no Servidor
-			// Sendo que os Conteudos Vão Ser Apresentados
-			// Em Forma de Data, Apresenta-as de Baixo Para Cima, ou
-			// Seja Das Ultimas Materias Lançadas até as mais antigas
-
-			/*
-			 * Ver Como Ler ou Recuperar Arquivo no Servidor e como Fazer download do
-			 * Arquivo, tambem dar uma olha como usaar o thymeleaf com th:href th:src !!!
-			 * 
-			 */
-
-			if (renda == 0) {
-				model.addAttribute("renda", "Irregular");
-				model.addAttribute("situacao1", "Indisponivel");
-			} else {
-				model.addAttribute("renda", "Regular");
-				model.addAttribute("situacao1", "Disponivel");
-			}
-
-			model.addAttribute("desciplina", this.disciplina);
-			model.addAttribute("materias", minhasMaterias);
-			model.addAttribute("numero", nDeEstudante);
-			model.addAttribute("data", sdf.format(d));
-
-			model.addAttribute("nome", configurarNome);
-			model.addAttribute("escola", configurarEscola);
-
-			nomeDaPagina = "TechShine/Aluno/material2";
-			this.pagina = nomeDaPagina;
-			// }
-
-		} else {
-
-			estado = 0;
-			nomeDaPagina = "redirect:login";
-			this.pagina = nomeDaPagina;
-		}
-		return this.pagina;
-
-	}
-
-	@PostMapping("/Aluno-Materias-2")
-	public String materias(HttpServletResponse response, Aluno aluno, Model model) {
+	@Override
+    @Async
+	public String materias(HttpServletResponse response, Aluno aluno) {
 
 		String materia = aluno.getMateria();
 		System.out.println("Materia: " + materia);
 		String arquivo = null;
 		String[] a = null;
+		
+		try {
+			Thread.sleep(5000);
 
 		sair: for (String c : this.conteudos3) {
 			System.out.println("Materia: " + materia);
@@ -4948,7 +5445,7 @@ public class TechShineController {
 
 			System.out.println("ARQUIVO ALUNO: " + arquivo);
 
-			try {
+			
 
 				FileInputStream in = new FileInputStream(arquivo);
 				ServletOutputStream out = response.getOutputStream();
@@ -4964,224 +5461,15 @@ public class TechShineController {
 
 				in.close();
 				out.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			} 
+		}catch (Exception e) {
+			e.printStackTrace();
 		}
 
 		return "redirect:Aluno-Materias-2";
 	}
 
-	@GetMapping("/Aluno-Matriz-Curricular")
-	public String matriz(HttpServletRequest request) {
-
-		String nomeDaPagina = null;
-		estado = -5;
-
-		if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-			nomeDaPagina = "TechShine/Aluno/matriz";
-			this.pagina = nomeDaPagina;
-			// }
-
-		} else {
-
-			estado = 0;
-			nomeDaPagina = "redirect:login";
-			this.pagina = nomeDaPagina;
-		}
-		return this.pagina;
-
-	}
-
-	@GetMapping("/Aluno-Financa")
-	public String alunoFinanca(Model model) {
-
-		String nomeDaPagina = null;
-		estado = -5;
-
-		if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-			Salvar_SQL s = new Salvar_SQL();
-			Pesquisar_SQL p = new Pesquisar_SQL();
-
-			String mes = s.mesActual(this.BD);
-			Date d = new Date();
-			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
-			int nDeEstudante = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func, "NProc", "id", "",
-					this.id);
-
-			ArrayList<String> meses = new ArrayList<>();
-
-			meses.add("Janeiro");
-
-			meses.add("Fevereiro");
-
-			meses.add("Marco");
-
-			meses.add("Abril");
-
-			meses.add("Maio");
-
-			meses.add("Junho");
-
-			meses.add("Julho");
-
-			meses.add("Agosto");
-
-			meses.add("Setembro");
-
-			meses.add("Outubro");
-
-			meses.add("Novembro");
-
-			meses.add("Dezembro");
-
-			String curso = p.pesquisarUmConteudo_Numa_Linha_String(this.BD, this.quem_E_O_func, "curso", "id", "", 1);
-
-			
-			String n=this.quem_E_O_func;
-			String turma=null;
-			
-			if(this.quem_E_O_func.contains("__")) {
-				
-				String[] a = n.split("__");
-				 turma = a[0];
-			}else {
-				turma = this.quem_E_O_func;
-			}
-			
-			
-			String nivel="";
-			
-			
-			if(turma.endsWith("10")) {
-				System.out.println("Turma Da 10º Classe");
-				nivel="10";
-			}else if(turma.endsWith("11")) {
-				System.out.println("Turma Da 11º Classe");
-				nivel="11";
-			}if(turma.endsWith("12")) {
-				System.out.println("Turma Da 12º Classe");
-				nivel="12";
-			}if(turma.endsWith("13")) {
-				System.out.println("Turma Da 13º Classe");
-				nivel="13";
-			}
-			
-            int precoDoCurso=0;		
-			
-			if(nivel.contains("10")) {
-				precoDoCurso= p.pesquisarUmConteudo_Numa_Linha_Int(BD, "cursos_Niveis", "Decima", "cursos", curso, 0);	
-			}else if(nivel.contains("11")) {
-				precoDoCurso= p.pesquisarUmConteudo_Numa_Linha_Int(BD, "cursos_Niveis", "DecimaPrimeira", "cursos", curso, 0);	
-			}else if(nivel.contains("12")) {
-				precoDoCurso= p.pesquisarUmConteudo_Numa_Linha_Int(BD, "cursos_Niveis", "DecimaSegunda", "cursos", curso, 0);	
-			}else if(nivel.contains("13")) {
-				precoDoCurso= p.pesquisarUmConteudo_Numa_Linha_Int(BD, "cursos_Niveis", "DecimaTerceira", "cursos", curso, 0);	
-			}
-			
-			
-			
-			
-			
-			int diferenca;
-			int mes2 = 0;
-			
-			
-
-			ArrayList<Aluno> dados = new ArrayList<>();
-			for (String cadaC : meses) {
-
-				Aluno aluno = new Aluno();
-				mes2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_Financa", cadaC, "id", "",
-						this.id);
-
-				if (mes2 > 0) {
-					
-					if(mes2==1) {
-						
-						aluno.setPagamento("Não Pago");
-						aluno.setMulta("Nenhuma");
-					}else {
-						
-						diferenca = mes2 - precoDoCurso;
-						
-						System.out.println("Diferenca: "+diferenca);
-						System.out.println("mes2: "+mes2);
-						System.out.println("precoDoCurso: "+precoDoCurso);
-						
-						if (diferenca == 0) {
-							
-							System.out.println("Diferenca: "+diferenca);
-							System.out.println("mes2: "+mes2);
-
-							aluno.setPagamento(mes2 + ",00 Kz");
-							aluno.setMulta("0,00 Kz");
-						} else {
-
-							System.out.println("+*+++++++++++++++++++");
-							
-							System.out.println("Diferenca: "+diferenca);
-							System.out.println("mes2: "+mes2);
-
-							aluno.setPagamento(mes2 + ",00 Kz");
-							aluno.setMulta(diferenca + ",00 Kz");
-
-							mes2 = mes2 - diferenca;
-						}
-						
-					}
-
-					
-				}
-
-				if (cadaC.equalsIgnoreCase("Marco")) {
-
-					aluno.setMes("Março");
-				} else {
-
-					aluno.setMes(cadaC);
-				}
-
-				dados.add(aluno);
-			}
-
-			if (renda == 0) {
-				model.addAttribute("renda", "Irregular");
-				model.addAttribute("situacao1", "Indisponivel");
-			} else {
-				model.addAttribute("renda", "Regular");
-				model.addAttribute("situacao1", "Disponivel");
-			}
-
-			model.addAttribute("aluno", dados);
-
-			model.addAttribute("numero", nDeEstudante);
-			model.addAttribute("data", sdf.format(d));
-
-			model.addAttribute("nome", configurarNome);
-			model.addAttribute("escola", configurarEscola);
-
-			nomeDaPagina = "TechShine/Aluno/financa";
-			this.pagina = nomeDaPagina;
-			// }
-
-		} else {
-
-			estado = 0;
-			nomeDaPagina = "redirect:login";
-			this.pagina = nomeDaPagina;
-		}
-		return this.pagina;
-
-	}
+	
 
 	// ===================================
 
@@ -5195,7 +5483,80 @@ public class TechShineController {
 	 */
 
 	@GetMapping("/coord")
-	public String cord_inicio(Model model) {
+	public String cord_inicio(Model model,HttpServletRequest request) {
+		
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		
+		
+		this.repetir="coord";
 
 		Pesquisar_SQL p = new Pesquisar_SQL();
 		Salvar_SQL s = new Salvar_SQL();
@@ -5208,13 +5569,13 @@ public class TechShineController {
 
 			int contador = 0;
 			int contador2 = 0;
-			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(this.BD, "cursos", "nome", "bi", this.bi, 0);
+			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(BD, "cursos", "nome", "bi", bi, 0);
 
 			System.out.println("Entrou Nos Cursos");
 			for (String cadaC : cursos) {
 				++contador2;
 				System.out.println("Contador2: " + contador2);
-				ArrayList<String> profs = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
+				ArrayList<String> profs = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs",
 						"professor", "curso", cadaC, 0);
 				for (String pr : profs) {
 
@@ -5224,11 +5585,11 @@ public class TechShineController {
 
 			}
 
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 			Date d = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+					id);
 
 			model.addAttribute("qCursos", contador2);
 			model.addAttribute("qProfs", contador);
@@ -5257,9 +5618,80 @@ public class TechShineController {
 		return this.pagina;
 
 	}
+	
+	@GetMapping({"/Coord-Professores-2","/webgenius/Coord-Professores-2"})
+	public String cord_materias(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
 
-	@GetMapping("/Coord-Professores-2")
-	public String cord_materias(Model model) {
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		
+		this.repetir="Coord-Professores-2";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -5274,7 +5706,7 @@ public class TechShineController {
 			int contador = 0;
 			int contador2 = 0;
 			int contador3 = 0;
-			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(this.BD, "cursos", "nome", "bi", this.bi, 0);
+			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(BD, "cursos", "nome", "bi", bi, 0);
 
 			ArrayList<Integer> qPros = new ArrayList<>();
 			ArrayList<Integer> qAlunos = new ArrayList<>();
@@ -5283,11 +5715,11 @@ public class TechShineController {
 			for (String cadaC : cursos) {
 				++contador2;
 				System.out.println("Contador2: " + contador2);
-				ArrayList<String> profs = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
+				ArrayList<String> profs = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs",
 						"professor", "curso", cadaC, 0);
 
 				qPros.add(profs.size());
-				ArrayList<String> turma = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma",
+				ArrayList<String> turma = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "turma",
 						"curso", cadaC, 0);
 
 				for (String pr : profs) {
@@ -5300,7 +5732,7 @@ public class TechShineController {
 
 					System.out.println("Turma: " + t);
 
-					contador3 = contador3 + cID.recuperarCodigo(this.BD, t, "id");
+					contador3 = contador3 + cID.recuperarCodigo(BD, t, "id");
 
 				}
 
@@ -5309,15 +5741,15 @@ public class TechShineController {
 
 			}
 
-			ArrayList<String> profs = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "professor",
+			ArrayList<String> profs = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "professor",
 					"curso", this.curso2, 0);
-			ArrayList<String> bis = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "bi", "curso",
+			ArrayList<String> bis = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "bi", "curso",
 					this.curso2, 0);
 			ArrayList<Integer> telefones = new ArrayList<>();
 
 			for (String b : bis) {
 
-				telefones.add(p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "professor_dadospessoais", "Telefone", "bi",
+				telefones.add(p.pesquisarUmConteudo_Numa_Linha_Int(BD, "Professor_DadosPessoais", "Telefone", "bi",
 						b, 0));
 			}
 
@@ -5329,7 +5761,7 @@ public class TechShineController {
 				if ((profs.size() > 0) && (i < profs.size())) {
 
 					curso.setProfessor(profs.get(i));
-					;
+					
 				}
 
 				if ((telefones.size() > 0) && (i < telefones.size())) {
@@ -5341,11 +5773,11 @@ public class TechShineController {
 				conteudosDoCurso.add(curso);
 			}
 
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 			Date d = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+					id);
 
 			model.addAttribute("cursos", conteudosDoCurso);
 			model.addAttribute("qCursos", contador2);
@@ -5375,64 +5807,83 @@ public class TechShineController {
 		return this.pagina;
 
 	}
-
-	@GetMapping({ "/Aluno-Minha-Seguranca" })
-	public String aluno(Model model) {
-
-		String nomeDaPagina = null;
-		estado = -5;
-
-		if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-			
-			Salvar_SQL s = new Salvar_SQL();
-			Pesquisar_SQL p = new Pesquisar_SQL();
-
-			String mes = s.mesActual(this.BD);
-			Date d = new Date();
-			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
-			int nDeEstudante = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func, "NProc", "id", "",
-					this.id);
-
-			if (renda == 0) {
-				model.addAttribute("renda", "Irregular");
-				model.addAttribute("situacao1", "Indisponivel");
-			} else {
-				model.addAttribute("renda", "Regular");
-				model.addAttribute("situacao1", "Disponivel");
-			}
-
-			model.addAttribute("numero", nDeEstudante);
-			
-			
-			model.addAttribute("data", sdf.format(d));
-
-			model.addAttribute("nome", configurarNome);
-			model.addAttribute("escola", configurarEscola);
-			
-			
-			nomeDaPagina = "TechShine/Aluno/security";
-			this.pagina = nomeDaPagina;
-			// }
-
-		} else {
-
-			estado = 0;
-			nomeDaPagina = "redirect:login";
-			this.pagina = nomeDaPagina;
-		}
-
-		// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
-		return this.pagina;
-	}
+	
+	
 
 	@GetMapping("/Coord-Professores")
-	public String cord_turmas(Model model) {
+	public String cord_turmas(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
 
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		
+
+		this.repetir="Coord-Professores";
 		String nomeDaPagina = null;
 		estado = -5;
 		if (entrarNoSistema.podeAbrirAPagina(senha)) {
@@ -5448,13 +5899,13 @@ public class TechShineController {
 			int contador3 = 0;
 			
 
-			ArrayList<String> cursos3 = p.pesquisarTudoEmString_Restrito(this.BD, "cursos", "nome", "bi", this.bi, 0);
+			ArrayList<String> cursos3 = p.pesquisarTudoEmString_Restrito(BD, "cursos", "nome", "bi", bi, 0);
 
 			System.out.println("Entrou Nos Cursos");
 			for (String cadaC : cursos3) {
 				++contador2;
 				System.out.println("Contador2: " + contador2);
-				ArrayList<String> profs = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
+				ArrayList<String> profs = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs",
 						"professor", "curso", cadaC, 0);
 				for (String pr : profs) {
 
@@ -5466,11 +5917,11 @@ public class TechShineController {
 
 			System.out.println("Entrou Nos Cursos");
 
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 			Date d = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+					id);
 
 			model.addAttribute("cursos", cursos3);
 			model.addAttribute("qCursos", contador2);
@@ -5500,9 +5951,81 @@ public class TechShineController {
 		return this.pagina;
 
 	}
+	
+	@GetMapping({"/Coord-Permissoes","/webgenius/Coord-Permissoes"})
+	public String cord_Avaliacao(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
 
-	@GetMapping("/Coord-Permissoes")
-	public String cord_Avaliacao(Model model) {
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		
+		
+		this.repetir="Coord-Permissoes";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -5515,13 +6038,13 @@ public class TechShineController {
 
 			int contador = 0;
 			int contador2 = 0;
-			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(this.BD, "cursos", "nome", "bi", this.bi, 0);
+			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(BD, "cursos", "nome", "bi", bi, 0);
 
 			System.out.println("Entrou Nos Cursos");
 			for (String cadaC : cursos) {
 				++contador2;
 				System.out.println("Contador2: " + contador2);
-				ArrayList<String> profs = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
+				ArrayList<String> profs = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs",
 						"professor", "curso", cadaC, 0);
 				for (String pr : profs) {
 
@@ -5531,11 +6054,11 @@ public class TechShineController {
 
 			}
 
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 			Date d = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+					id);
 
 			model.addAttribute("qCursos", contador2);
 			model.addAttribute("qProfs", contador);
@@ -5562,9 +6085,288 @@ public class TechShineController {
 		}
 		return this.pagina;
 	}
+	
+	
+	@GetMapping({"/Admin-Permissoes","/webgenius/Admin-Permissoes"})
+	public String Admin_permissao(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
 
-	@GetMapping("/Coord-Minha-Seguranca")
-	public String corod_Seguranca(Model model) {
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		
+		this.repetir="Admin-Permissoes";
+
+		String nomeDaPagina = null;
+		estado = -5;
+		if (entrarNoSistema.podeAbrirAPagina(senha)) {
+
+			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+
+			Pesquisar_SQL p = new Pesquisar_SQL();
+			Salvar_SQL s = new Salvar_SQL();
+
+			int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+			int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+			int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+			int renda = 0;
+			ArrayList<Curso> cursos = p.Listar_Cursos(BD);
+			ArrayList<String> tCursos = new ArrayList<>();
+
+			for (Curso c : cursos) {
+
+				tCursos.add(c.getNome());
+			}
+			
+			
+
+			String mes = s.mesActual(BD);
+
+			if (quem_E_O_func.equalsIgnoreCase("pca")) {
+				renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi, 0);
+				nomeDaPagina = "TechShine/Admin/AdminPermissoes";
+				model.addAttribute("renda", renda + ",00 Kz");
+			} else if (quem_E_O_func.equalsIgnoreCase("DG")) {
+
+				renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "DG_Financa", mes, "id", "", id);
+
+				if (renda == 0) {
+					model.addAttribute("renda", "Irregular");
+				} else {
+					model.addAttribute("renda", "Regular");
+				}
+
+				nomeDaPagina = "TechShine/Admin/AdminPermissoes";
+			} 
+
+			model.addAttribute("qalunos", qalunos);
+			model.addAttribute("qfunc", qfunc);
+			model.addAttribute("qCurso", QCurso);
+			model.addAttribute("cursos", tCursos);
+
+			model.addAttribute("mensagem", this.mensagem);
+			model.addAttribute("nome", configurarNome);
+			model.addAttribute("escola", configurarEscola);
+			
+
+			
+			this.pagina = nomeDaPagina;
+			// }
+
+		} else {
+
+			estado = 0;
+			nomeDaPagina = "redirect:login";
+			this.pagina = nomeDaPagina;
+		}
+		return this.pagina;
+	}
+	
+	
+	@PostMapping({"/Admin-Permissoes","/webgenius/Admin-Permissoes"})
+	public String Admin_permissao2(Coordenador coord,Model model) {
+
+		
+		Pesquisar_SQL p = new Pesquisar_SQL();
+		Salvar_SQL s = new Salvar_SQL();
+		Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
+		
+		
+		ArrayList<Curso> cursos = p.Listar_Cursos(BD);
+		ArrayList<String> tCursos = new ArrayList<>();
+
+		for (Curso c : cursos) {
+
+			tCursos.add(c.getNome());
+		}
+		
+		if(coord.isBloqueiarTodos()) {
+			
+			
+			for(String c: tCursos) {
+				
+			
+		       ta.actualizarColuna_Qualquer_Linha(BD, "cursos", "autorizacao", 0, "N", "nome", c);
+			}
+			
+			this.mensagem="Os Lançamento De Notas Foram Bloqueiados";
+			
+		}else if(coord.isDesbloqueiarTodos()) {
+			
+			for(String c: tCursos) {
+				
+				
+			       ta.actualizarColuna_Qualquer_Linha(BD, "cursos", "autorizacao", 0, "S", "nome", c);
+				}
+			
+			
+			this.mensagem="Os Lançamento De Notas Foram Desbloqueiados";
+			
+		}
+		
+		if(coord.getBloqueiar().equalsIgnoreCase("Nao Pretendo Bloqueiar")) {
+			
+			
+		}else  {
+			
+			ta.actualizarColuna_Qualquer_Linha(BD, "cursos", "autorizacao", 0, "N", "nome", coord.getBloqueiar());
+			this.mensagem= this.mensagem+", Excepto o curso de "+coord.getBloqueiar();
+		}
+		
+		
+        if(coord.getDesbloqueiar().equalsIgnoreCase("Nao Pretendo Desbloqueiar")) {
+			
+			
+		}else  {
+			
+			ta.actualizarColuna_Qualquer_Linha(BD, "cursos", "autorizacao", 0, "S", "nome", coord.getDesbloqueiar());
+			this.mensagem= this.mensagem+", Excepto o curso de "+coord.getDesbloqueiar();
+		}   
+
+		return "redirect:Admin-Permissoes";
+	}
+	
+	
+	
+	@GetMapping({"/Coord-Minha-Seguranca","/webgenius/Coord-Minha-Seguranca"})
+	public String corod_Seguranca(Model model,HttpServletRequest request) {
+		
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		
+		
+		this.repetir="Coord-Minha-Seguranca";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -5577,13 +6379,13 @@ public class TechShineController {
 
 			int contador = 0;
 			int contador2 = 0;
-			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(this.BD, "cursos", "nome", "bi", this.bi, 0);
+			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(BD, "cursos", "nome", "bi", bi, 0);
 
 			System.out.println("Entrou Nos Cursos");
 			for (String cadaC : cursos) {
 				++contador2;
 				System.out.println("Contador2: " + contador2);
-				ArrayList<String> profs = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
+				ArrayList<String> profs = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs",
 						"professor", "curso", cadaC, 0);
 				for (String pr : profs) {
 
@@ -5593,11 +6395,11 @@ public class TechShineController {
 
 			}
 
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 			Date d = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+					id);
 
 			model.addAttribute("qCursos", contador2);
 			model.addAttribute("qProfs", contador);
@@ -5627,6 +6429,8 @@ public class TechShineController {
 
 	@GetMapping("/financa")
 	public String financa(Model model) {
+		
+		this.repetir="financa";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -5639,13 +6443,13 @@ public class TechShineController {
 
 			int contador = 0;
 			int contador2 = 0;
-			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(this.BD, "cursos", "nome", "bi", this.bi, 0);
+			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(BD, "cursos", "nome", "bi", bi, 0);
 
 			System.out.println("Entrou Nos Cursos");
 			for (String cadaC : cursos) {
 				++contador2;
 				System.out.println("Contador2: " + contador2);
-				ArrayList<String> profs = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
+				ArrayList<String> profs = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs",
 						"professor", "curso", cadaC, 0);
 				for (String pr : profs) {
 
@@ -5655,11 +6459,11 @@ public class TechShineController {
 
 			}
 
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 			Date d = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+					id);
 
 			model.addAttribute("qCursos", contador2);
 			model.addAttribute("qProfs", contador);
@@ -5698,7 +6502,79 @@ public class TechShineController {
 	 */
 
 	@GetMapping("/Professor")
-	public String professor(Model model) {
+	public String professor(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		
+		
+		this.repetir="Professor";
 
 		Salvar_SQL s = new Salvar_SQL();
 		Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
@@ -5711,10 +6587,10 @@ public class TechShineController {
 			Pesquisar_SQL p = new Pesquisar_SQL();
 
 			int renda;
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 
-			renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
+			renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+					id);
 
 			if (renda == 0) {
 				model.addAttribute("renda", "Irregular");
@@ -5722,9 +6598,9 @@ public class TechShineController {
 				model.addAttribute("renda", "Regular");
 			}
 
-			p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "disciplinas_dos_profs", "turma", "bi", this.bi, 0);
-			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma", "bi",
-					this.bi, 0);
+			p.pesquisarUmConteudo_Numa_Linha_String(BD, "Disciplinas_Dos_Profs", "turma", "bi", bi, 0);
+			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "turma", "bi",
+					bi, 0);
 
 			int qalunos = 0;
 			int contador = 0;
@@ -5732,19 +6608,19 @@ public class TechShineController {
 			Controle_ID_SQL cID = new Controle_ID_SQL();
 			for (String turma : turmas) {
 
-				qalunos = qalunos + cID.recuperarCodigo(this.BD, turma, "id");
+				qalunos = qalunos + cID.recuperarCodigo(BD, turma, "id");
 				System.out.println("qalunos: " + qalunos);
 				++contador;
 			}
 
-			// ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "desciplina", "bi", this.bi, 0);
-			// ArrayList<String> cursos =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "curso", "bi", this.bi, 0);
-			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "turno", "bi", this.bi, 0);
-			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "nivel", "bi", this.bi, 0);
+			// ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "desciplina", "bi", bi, 0);
+			// ArrayList<String> cursos =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "curso", "bi", bi, 0);
+			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "turno", "bi", bi, 0);
+			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "nivel", "bi", bi, 0);
 
 			Date d = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
@@ -5770,9 +6646,79 @@ public class TechShineController {
 		}
 		return this.pagina;
 	}
+	
+	@GetMapping({"/Professor-Material","/webgenius/Professor-Material"})
+	public String professor_Material(Model model,HttpServletRequest request) {
+		
+		
+		
+Cookie[] cookies = request.getCookies();
 
-	@GetMapping("/Professor-Material")
-	public String professor_Material(Model model) {
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		this.repetir="Professor-Material";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -5784,10 +6730,10 @@ public class TechShineController {
 			Salvar_SQL s = new Salvar_SQL();
 
 			int renda;
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 
-			renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
+			renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+					id);
 
 			if (renda == 0) {
 				model.addAttribute("renda", "Irregular");
@@ -5795,8 +6741,8 @@ public class TechShineController {
 				model.addAttribute("renda", "Regular");
 			}
 
-			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma", "bi",
-					this.bi, 0);
+			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "turma", "bi",
+					bi, 0);
 
 			int qalunos = 0;
 			int contador = 0;
@@ -5804,30 +6750,30 @@ public class TechShineController {
 			Controle_ID_SQL cID = new Controle_ID_SQL();
 			for (String turma : turmas) {
 
-				qalunos = qalunos + cID.recuperarCodigo(this.BD, turma, "id");
+				qalunos = qalunos + cID.recuperarCodigo(BD, turma, "id");
 				System.out.println("qalunos: " + qalunos);
 				++contador;
 			}
 
-			// ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "desciplina", "bi", this.bi, 0);
-			// ArrayList<String> cursos =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "curso", "bi", this.bi, 0);
-			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "turno", "bi", this.bi, 0);
-			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "nivel", "bi", this.bi, 0);
+			// ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "desciplina", "bi", bi, 0);
+			// ArrayList<String> cursos =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "curso", "bi", bi, 0);
+			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "turno", "bi", bi, 0);
+			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "nivel", "bi", bi, 0);
 
 			Date d = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
 			String data = sdf.format(d);
 
-			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "curso", "bi",
-					this.bi, 0);
-			ArrayList<String> niveis = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "nivel", "bi",
-					this.bi, 0);
-			ArrayList<String> desciplinas = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
-					"desciplina", "bi", this.bi, 0);
+			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "curso", "bi",
+					bi, 0);
+			ArrayList<String> niveis = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "nivel", "bi",
+					bi, 0);
+			ArrayList<String> desciplinas = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs",
+					"desciplina", "bi", bi, 0);
 
 			model.addAttribute("qalunos", qalunos);
 			model.addAttribute("qturmas", contador);
@@ -5858,19 +6804,24 @@ public class TechShineController {
 	public String professor_Material(Model model, Professor prof, HttpServletRequest request,
 			HttpServletResponse response) throws IOException {
 
-		MultipartFile arquivo = prof.getFicheiro();
+		
+		synchronized(this){
+			
+			MultipartFile arquivo = prof.getFicheiro();
 
-		this.disciplina = prof.getDesciplina();
-		String descricao = prof.getDescricao();
+			this.disciplina = prof.getDesciplina();
+			String descricao = prof.getDescricao();
 
-		String sigla = prof.getCurso().subSequence(0, 3) + "" + prof.getNivel().substring(0, 2);
-		System.out.println("Arquivo Nome: " + arquivo.getName());
-		System.out.println("Arquivo Caminho Absoluto: " + arquivo.getOriginalFilename());
+			String sigla = prof.getCurso().subSequence(0, 3) + "" + prof.getNivel().substring(0, 2);
+			System.out.println("Arquivo Nome: " + arquivo.getName());
+			System.out.println("Arquivo Caminho Absoluto: " + arquivo.getOriginalFilename());
 
-		inserirArquivoNoServido(request, response, arquivo, false, descricao, sigla,prof.getTurma());
-		System.out.println("Arquivo Caminho Absoluto: " + arquivo.getContentType());
+			inserirArquivoNoServido(request, response, arquivo, false, descricao, sigla,prof.getTurma(),prof.getIdFunc());
+			System.out.println("Arquivo Caminho Absoluto: " + arquivo.getContentType());
 
-		return "redirect:Professor-Material";
+			return "redirect:Professor-Material";
+		}
+		   
 	}
 
 	@PostMapping("/Professor-Avaliacao")
@@ -5887,7 +6838,7 @@ public class TechShineController {
 		this.prof2.setNotasDosAlunos(prof.getNotasDosAlunos());
 
 		Salvar_SQL s = new Salvar_SQL();
-		s.pode_Lancar_Nota_Ou_Prova(this.BD, this.prof2.getTurma(), this.prof2.getDesciplina(),
+		s.pode_Lancar_Nota_Ou_Prova(BD, this.prof2.getTurma(), this.prof2.getDesciplina(),
 				this.prof2.getNotasDosAlunos(), this.prof2.getCurso());
 
 		model.addAttribute("resultado", " Avaliações Lançadas Com Sucesso");
@@ -5896,11 +6847,11 @@ public class TechShineController {
 
 	@PostMapping("/Professor-Provas-2")
 	public String professor_Avaliacao5(Model model, Professor prof) {
-
+ 
 		this.prof2.setNotasDosAlunos(prof.getNotasDosAlunos());
 
 		Salvar_SQL s = new Salvar_SQL();
-		s.pode_Lancar_Nota_Ou_Prova(this.BD, this.prof2.getTurma(), this.prof2.getDesciplina(),
+		s.pode_Lancar_Nota_Ou_Prova(BD, this.prof2.getTurma(), this.prof2.getDesciplina(),
 				this.prof2.getNotasDosAlunos(), this.prof2.getCurso());
 
 		model.addAttribute("resultado", " Provas Lançadas Com Sucesso");
@@ -5929,7 +6880,7 @@ public class TechShineController {
 		this.prof2.setNotasDosAlunos(prof.getNotasDosAlunos());
 
 		Salvar_SQL s = new Salvar_SQL();
-		s.pode_Lancar_Nota_Ou_Prova(this.BD, this.prof2.getTurma(), this.prof2.getDesciplina(),
+		s.pode_Lancar_Nota_Ou_Prova(BD, this.prof2.getTurma(), this.prof2.getDesciplina(),
 				this.prof2.getNotasDosAlunos(), this.prof2.getCurso());
 
 		model.addAttribute("resultado", " Exames Lançados Com Sucesso");
@@ -5939,6 +6890,27 @@ public class TechShineController {
 	@PostMapping({ "/Professor-Minha-Seguranca" })
 	public String professor(@Validated RecuperarSenha recuperar, Model model) {
 
+		
+		
+		
+		synchronized(this){
+		
+		Pesquisar_SQL p = new Pesquisar_SQL();	
+		Usuario usuario = p.retornaUsuario(BD,recuperar.getIdFunc(),this.configurarEscola);
+		
+		
+		boolean existeuUsuario = usuario.isExisteUsuario();
+		
+		if(existeuUsuario){
+			
+			quem_E_O_func = usuario.getIntegrante();
+			id = usuario.getId();
+			
+			
+		}
+		
+		
+		
 		String pagina = null;
 
 		Salvar_SQL s = new Salvar_SQL();
@@ -5950,14 +6922,14 @@ public class TechShineController {
 
 		} else {
 
-			s.sistema_Mudar_A_Senha(this.BD, senha, "professor", this.id, "", false);
+			s.sistema_Mudar_A_Senha(BD, senha, "professor", id, "", false);
 		}
 
 		if ((palavra.equalsIgnoreCase("")) || (palavra == null)) {
 
 		} else {
 
-			s.sistema_Mudar_A_Senha(this.BD, palavra, "professor", this.id, "", false);
+			s.sistema_Mudar_A_Senha(BD, palavra, "professor", id, "", false);
 		}
 
 		if ((senha.equalsIgnoreCase("")) || (senha == null)) {
@@ -5979,6 +6951,8 @@ public class TechShineController {
 
 		// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
 		return this.pagina;
+		
+		}
 	}
 
 	@PostMapping("/Professor-Provas")
@@ -5989,9 +6963,79 @@ public class TechShineController {
 
 		return "redirect:Professor-Provas-2";
 	}
+	
+	@GetMapping({"/Professor-Provas","/webgenius/Professor-Provas"})
+	public String professor_frequencia(Model model,HttpServletRequest request) {
+		
+		
+		
+Cookie[] cookies = request.getCookies();
 
-	@GetMapping("/Professor-Provas")
-	public String professor_frequencia(Model model) {
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		this.repetir="Professor-Provas";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -6003,10 +7047,10 @@ public class TechShineController {
 			Salvar_SQL s = new Salvar_SQL();
 
 			int renda;
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 
-			renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
+			renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+					id);
 
 			if (renda == 0) {
 				model.addAttribute("renda", "Irregular");
@@ -6014,8 +7058,8 @@ public class TechShineController {
 				model.addAttribute("renda", "Regular");
 			}
 
-			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma", "bi",
-					this.bi, 0);
+			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "turma", "bi",
+					bi, 0);
 
 			int qalunos = 0;
 			int contador = 0;
@@ -6023,19 +7067,19 @@ public class TechShineController {
 			Controle_ID_SQL cID = new Controle_ID_SQL();
 			for (String turma : turmas) {
 
-				qalunos = qalunos + cID.recuperarCodigo(this.BD, turma, "id");
+				qalunos = qalunos + cID.recuperarCodigo(BD, turma, "id");
 				System.out.println("qalunos: " + qalunos);
 				++contador;
 			}
 
-			ArrayList<String> desciplinas = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
-					"desciplina", "bi", this.bi, 0);
-			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "curso", "bi",
-					this.bi, 0);
-			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "turno", "bi", this.bi, 0);
-			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "nivel", "bi", this.bi, 0);
+			ArrayList<String> desciplinas = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs",
+					"desciplina", "bi", bi, 0);
+			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "curso", "bi",
+					bi, 0);
+			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "turno", "bi", bi, 0);
+			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "nivel", "bi", bi, 0);
 
 			Date d = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
@@ -6067,7 +7111,78 @@ public class TechShineController {
 	}
 
 	@GetMapping("/Professor-Provas-2")
-	public String professor_frequencia6(Model model) {
+	public String professor_frequencia6(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		
+		this.repetir="Professor-Provas-2";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -6079,10 +7194,10 @@ public class TechShineController {
 			Salvar_SQL s = new Salvar_SQL();
 
 			int renda;
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 
-			renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
+			renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+					id);
 
 			if (renda == 0) {
 				model.addAttribute("renda", "Irregular");
@@ -6090,9 +7205,9 @@ public class TechShineController {
 				model.addAttribute("renda", "Regular");
 			}
 
-			p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "disciplinas_dos_profs", "turma", "bi", this.bi, 0);
-			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma", "bi",
-					this.bi, 0);
+			p.pesquisarUmConteudo_Numa_Linha_String(BD, "Disciplinas_Dos_Profs", "turma", "bi", bi, 0);
+			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "turma", "bi",
+					bi, 0);
 
 			int qalunos = 0;
 			int contador = 0;
@@ -6100,19 +7215,19 @@ public class TechShineController {
 			Controle_ID_SQL cID = new Controle_ID_SQL();
 			for (String turma : turmas) {
 
-				qalunos = qalunos + cID.recuperarCodigo(this.BD, turma, "id");
+				qalunos = qalunos + cID.recuperarCodigo(BD, turma, "id");
 				System.out.println("qalunos: " + qalunos);
 				++contador;
 			}
 
-			// ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "desciplina", "bi", this.bi, 0);
-			// ArrayList<String> cursos =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "curso", "bi", this.bi, 0);
-			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "turno", "bi", this.bi, 0);
-			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "nivel", "bi", this.bi, 0);
+			// ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "desciplina", "bi", bi, 0);
+			// ArrayList<String> cursos =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "curso", "bi", bi, 0);
+			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "turno", "bi", bi, 0);
+			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "nivel", "bi", bi, 0);
 
 			Date d = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
@@ -6126,7 +7241,7 @@ public class TechShineController {
 			String turma = this.prof2.getTurma();
 			this.prof2.setTurma(turma);
 
-			ArrayList<String> alunos1 = p.pesquisarTudoEmString(this.BD, turma, "Alunos");
+			ArrayList<String> alunos1 = p.pesquisarTudoEmString(BD, turma, "Alunos");
 			ArrayList<String> alunos = new ArrayList<>();
 
 			Verificar_Login v = new Verificar_Login();
@@ -6163,7 +7278,76 @@ public class TechShineController {
 	}
 
 	@GetMapping("/Professor-Turmas-2")
-	public String professor_tu(Model model) {
+	public String professor_tu(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		this.repetir="Professor-Turmas-2";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -6176,10 +7360,10 @@ public class TechShineController {
 			Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
 
 			int renda;
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 
-			renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
+			renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "Professor_Financa", mes, "id", "",
+					id);
 
 			if (renda == 0) {
 				model.addAttribute("renda", "Irregular");
@@ -6187,9 +7371,21 @@ public class TechShineController {
 				model.addAttribute("renda", "Regular");
 			}
 
-			p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "disciplinas_dos_profs", "turma", "bi", this.bi, 0);
-			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma", "bi",
-					this.bi, 0);
+			
+			
+           Usuario usuario = p.retornaUsuario(BD,this.prof2.getIdFunc(),this.configurarEscola);
+			
+			
+			boolean existeuUsuario = usuario.isExisteUsuario();
+			
+			if(existeuUsuario){
+				
+				bi = usuario.getBi();
+			}
+			
+			p.pesquisarUmConteudo_Numa_Linha_String(BD, "Disciplinas_Dos_Profs", "turma", "bi", bi, 0);
+			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "turma", "bi",
+					bi, 0);
 
 			int qalunos = 0;
 			int contador = 0;
@@ -6197,19 +7393,19 @@ public class TechShineController {
 			Controle_ID_SQL cID = new Controle_ID_SQL();
 			for (String turma : turmas) {
 
-				qalunos = qalunos + cID.recuperarCodigo(this.BD, turma, "id");
+				qalunos = qalunos + cID.recuperarCodigo(BD, turma, "id");
 				System.out.println("qalunos: " + qalunos);
 				++contador;
 			}
 
-			// ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "desciplina", "bi", this.bi, 0);
-			// ArrayList<String> cursos =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "curso", "bi", this.bi, 0);
-			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "turno", "bi", this.bi, 0);
-			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "nivel", "bi", this.bi, 0);
+			// ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "desciplina", "bi", bi, 0);
+			// ArrayList<String> cursos =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "curso", "bi", bi, 0);
+			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "turno", "bi", bi, 0);
+			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "nivel", "bi", bi, 0);
 
 			Date d = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
@@ -6219,11 +7415,11 @@ public class TechShineController {
 			String desciplina = this.prof2.getDesciplina();
 
 			desciplina = ta.tirarCaracteres(desciplina);
-			ArrayList<String> alunos = p.pesquisarTudoEmString(this.BD, turma, "Alunos");
-			ArrayList<Integer> avaliacao = p.pesquisarTudoEmInt(this.BD, turma + "_Avaliacao", desciplina);
-			ArrayList<Integer> prova = p.pesquisarTudoEmInt(this.BD, turma + "_Prova", desciplina);
-			ArrayList<Integer> media = p.pesquisarTudoEmInt(this.BD, turma + "_Media", desciplina);
-			ArrayList<String> situacao = p.pesquisarTudoEmString(this.BD, turma + "_Media", "Situacao");
+			ArrayList<String> alunos = p.pesquisarTudoEmString(BD, turma, "Alunos");
+			ArrayList<Integer> avaliacao = p.pesquisarTudoEmInt(BD, turma + "_Avaliacao", desciplina);
+			ArrayList<Integer> prova = p.pesquisarTudoEmInt(BD, turma + "_Prova", desciplina);
+			ArrayList<Integer> media = p.pesquisarTudoEmInt(BD, turma + "_Media", desciplina);
+			ArrayList<String> situacao = p.pesquisarTudoEmString(BD, turma + "_Media", "Situacao");
 
 			Verificar_Login v = new Verificar_Login();
 			String n;
@@ -6289,7 +7485,78 @@ public class TechShineController {
 	}
 
 	@GetMapping("/Professor-Turmas")
-	public String professor_Turmas(Model model) {
+	public String professor_Turmas(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		
+		this.repetir="Professor-Turmas";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -6301,10 +7568,10 @@ public class TechShineController {
 			Salvar_SQL s = new Salvar_SQL();
 
 			int renda;
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 
-			renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
+			renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+					id);
 
 			if (renda == 0) {
 				model.addAttribute("renda", "Irregular");
@@ -6312,9 +7579,9 @@ public class TechShineController {
 				model.addAttribute("renda", "Regular");
 			}
 
-			p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "disciplinas_dos_profs", "turma", "bi", this.bi, 0);
-			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma", "bi",
-					this.bi, 0);
+			p.pesquisarUmConteudo_Numa_Linha_String(BD, "Disciplinas_Dos_Profs", "turma", "bi", bi, 0);
+			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "turma", "bi",
+					bi, 0);
 
 			int qalunos = 0;
 			int contador = 0;
@@ -6322,19 +7589,19 @@ public class TechShineController {
 			Controle_ID_SQL cID = new Controle_ID_SQL();
 			for (String turma : turmas) {
 
-				qalunos = qalunos + cID.recuperarCodigo(this.BD, turma, "id");
+				qalunos = qalunos + cID.recuperarCodigo(BD, turma, "id");
 				System.out.println("qalunos: " + qalunos);
 				++contador;
 			}
 
-			ArrayList<String> desciplinas = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
-					"desciplina", "bi", this.bi, 0);
-			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "curso", "bi",
-					this.bi, 0);
-			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "turno", "bi", this.bi, 0);
-			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "nivel", "bi", this.bi, 0);
+			ArrayList<String> desciplinas = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs",
+					"desciplina", "bi", bi, 0);
+			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "curso", "bi",
+					bi, 0);
+			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "turno", "bi", bi, 0);
+			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "nivel", "bi", bi, 0);
 
 			Date d = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
@@ -6365,9 +7632,78 @@ public class TechShineController {
 		return this.pagina;
 
 	}
+	
+	@GetMapping({"/Professor-Avaliacao","/webgenius/Professor-Avaliacao"})
+	public String Prof_nota_E_avaliacao(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
 
-	@GetMapping("/Professor-Avaliacao")
-	public String Prof_nota_E_avaliacao(Model model) {
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		this.repetir="Professor-Avaliacao";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -6379,10 +7715,10 @@ public class TechShineController {
 			Salvar_SQL s = new Salvar_SQL();
 
 			int renda;
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 
-			renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
+			renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+					id);
 
 			if (renda == 0) {
 				model.addAttribute("renda", "Irregular");
@@ -6390,9 +7726,9 @@ public class TechShineController {
 				model.addAttribute("renda", "Regular");
 			}
 
-			p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "disciplinas_dos_profs", "turma", "bi", this.bi, 0);
-			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma", "bi",
-					this.bi, 0);
+			p.pesquisarUmConteudo_Numa_Linha_String(BD, "Disciplinas_Dos_Profs", "turma", "bi", bi, 0);
+			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "turma", "bi",
+					bi, 0);
 
 			int qalunos = 0;
 			int contador = 0;
@@ -6400,19 +7736,19 @@ public class TechShineController {
 			Controle_ID_SQL cID = new Controle_ID_SQL();
 			for (String turma : turmas) {
 
-				qalunos = qalunos + cID.recuperarCodigo(this.BD, turma, "id");
+				qalunos = qalunos + cID.recuperarCodigo(BD, turma, "id");
 				System.out.println("qalunos: " + qalunos);
 				++contador;
 			}
 
-			ArrayList<String> desciplinas = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
-					"desciplina", "bi", this.bi, 0);
-			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "curso", "bi",
-					this.bi, 0);
-			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "turno", "bi", this.bi, 0);
-			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "nivel", "bi", this.bi, 0);
+			ArrayList<String> desciplinas = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs",
+					"desciplina", "bi", bi, 0);
+			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "curso", "bi",
+					bi, 0);
+			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "turno", "bi", bi, 0);
+			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "nivel", "bi", bi, 0);
 
 			Date d = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
@@ -6441,9 +7777,80 @@ public class TechShineController {
 		return this.pagina;
 
 	}
+	
+	@GetMapping({"/Professor-exane","/webgenius/Professor-exane"})
+	public String Prof_nota_E(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
 
-	@GetMapping("/Professor-exane")
-	public String Prof_nota_E(Model model) {
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		
+		this.repetir="Professor-exane";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -6455,10 +7862,10 @@ public class TechShineController {
 			Salvar_SQL s = new Salvar_SQL();
 
 			int renda;
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 
-			renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
+			renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+					id);
 
 			if (renda == 0) {
 				model.addAttribute("renda", "Irregular");
@@ -6466,9 +7873,9 @@ public class TechShineController {
 				model.addAttribute("renda", "Regular");
 			}
 
-			p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "disciplinas_dos_profs", "turma", "bi", this.bi, 0);
-			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma", "bi",
-					this.bi, 0);
+			p.pesquisarUmConteudo_Numa_Linha_String(BD, "Disciplinas_Dos_Profs", "turma", "bi", bi, 0);
+			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "turma", "bi",
+					bi, 0);
 
 			int qalunos = 0;
 			int contador = 0;
@@ -6476,19 +7883,19 @@ public class TechShineController {
 			Controle_ID_SQL cID = new Controle_ID_SQL();
 			for (String turma : turmas) {
 
-				qalunos = qalunos + cID.recuperarCodigo(this.BD, turma, "id");
+				qalunos = qalunos + cID.recuperarCodigo(BD, turma, "id");
 				System.out.println("qalunos: " + qalunos);
 				++contador;
 			}
 
-			ArrayList<String> desciplinas = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
-					"desciplina", "bi", this.bi, 0);
-			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "curso", "bi",
-					this.bi, 0);
-			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "turno", "bi", this.bi, 0);
-			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "nivel", "bi", this.bi, 0);
+			ArrayList<String> desciplinas = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs",
+					"desciplina", "bi", bi, 0);
+			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "curso", "bi",
+					bi, 0);
+			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "turno", "bi", bi, 0);
+			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "nivel", "bi", bi, 0);
 
 			Date d = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
@@ -6517,9 +7924,78 @@ public class TechShineController {
 		return this.pagina;
 
 	}
+	
+	@GetMapping({"/Professor-exane-2","/webgenius/Professor-exane-2"})
+	public String Prof_nota_E2(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
 
-	@GetMapping("/Professor-exane-2")
-	public String Prof_nota_E2(Model model) {
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		this.repetir="Professor-exane-2";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -6531,10 +8007,10 @@ public class TechShineController {
 			Salvar_SQL s = new Salvar_SQL();
 
 			int renda;
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 
-			renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
+			renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+					id);
 
 			if (renda == 0) {
 				model.addAttribute("renda", "Irregular");
@@ -6542,9 +8018,9 @@ public class TechShineController {
 				model.addAttribute("renda", "Regular");
 			}
 
-			p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "disciplinas_dos_profs", "turma", "bi", this.bi, 0);
-			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma", "bi",
-					this.bi, 0);
+			p.pesquisarUmConteudo_Numa_Linha_String(BD, "Disciplinas_Dos_Profs", "turma", "bi", bi, 0);
+			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "turma", "bi",
+					bi, 0);
 
 			int qalunos = 0;
 			int contador = 0;
@@ -6552,19 +8028,19 @@ public class TechShineController {
 			Controle_ID_SQL cID = new Controle_ID_SQL();
 			for (String turma : turmas) {
 
-				qalunos = qalunos + cID.recuperarCodigo(this.BD, turma, "id");
+				qalunos = qalunos + cID.recuperarCodigo(BD, turma, "id");
 				System.out.println("qalunos: " + qalunos);
 				++contador;
 			}
 
-			// ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "desciplina", "bi", this.bi, 0);
-			// ArrayList<String> cursos =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "curso", "bi", this.bi, 0);
-			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "turno", "bi", this.bi, 0);
-			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "nivel", "bi", this.bi, 0);
+			// ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "desciplina", "bi", bi, 0);
+			// ArrayList<String> cursos =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "curso", "bi", bi, 0);
+			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "turno", "bi", bi, 0);
+			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "nivel", "bi", bi, 0);
 
 			Date d = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
@@ -6578,7 +8054,7 @@ public class TechShineController {
 			String turma = this.prof2.getTurma();
 			this.prof2.setTurma(turma);
 
-			ArrayList<String> alunos1 = p.pesquisarTudoEmString(this.BD, turma, "Alunos");
+			ArrayList<String> alunos1 = p.pesquisarTudoEmString(BD, turma, "Alunos");
 			ArrayList<String> alunos = new ArrayList<>();
 
 			Verificar_Login v = new Verificar_Login();
@@ -6604,9 +8080,78 @@ public class TechShineController {
 		return this.pagina;
 
 	}
+	
+	@GetMapping({"/Professor-Avaliacao-2","/webgenius/Professor-Avaliacao-2"})
+	public String Prof_nota_E_avaliacao2(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
 
-	@GetMapping("/Professor-Avaliacao-2")
-	public String Prof_nota_E_avaliacao2(Model model) {
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		this.repetir="Professor-Avaliacao-2";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -6618,10 +8163,10 @@ public class TechShineController {
 			Salvar_SQL s = new Salvar_SQL();
 
 			int renda;
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 
-			renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
+			renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+					id);
 
 			if (renda == 0) {
 				model.addAttribute("renda", "Irregular");
@@ -6629,9 +8174,9 @@ public class TechShineController {
 				model.addAttribute("renda", "Regular");
 			}
 
-			p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "disciplinas_dos_profs", "turma", "bi", this.bi, 0);
-			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma", "bi",
-					this.bi, 0);
+			p.pesquisarUmConteudo_Numa_Linha_String(BD, "Disciplinas_Dos_Profs", "turma", "bi", bi, 0);
+			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "turma", "bi",
+					bi, 0);
 
 			int qalunos = 0;
 			int contador = 0;
@@ -6639,19 +8184,19 @@ public class TechShineController {
 			Controle_ID_SQL cID = new Controle_ID_SQL();
 			for (String turma : turmas) {
 
-				qalunos = qalunos + cID.recuperarCodigo(this.BD, turma, "id");
+				qalunos = qalunos + cID.recuperarCodigo(BD, turma, "id");
 				System.out.println("qalunos: " + qalunos);
 				++contador;
 			}
 
-			// ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "desciplina", "bi", this.bi, 0);
-			// ArrayList<String> cursos =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "curso", "bi", this.bi, 0);
-			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "turno", "bi", this.bi, 0);
-			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "nivel", "bi", this.bi, 0);
+			// ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "desciplina", "bi", bi, 0);
+			// ArrayList<String> cursos =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "curso", "bi", bi, 0);
+			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "turno", "bi", bi, 0);
+			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "nivel", "bi", bi, 0);
 
 			Date d = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
@@ -6665,7 +8210,7 @@ public class TechShineController {
 			String turma = this.prof2.getTurma();
 			this.prof2.setTurma(turma);
 
-			ArrayList<String> alunos1 = p.pesquisarTudoEmString(this.BD, turma, "Alunos");
+			ArrayList<String> alunos1 = p.pesquisarTudoEmString(BD, turma, "Alunos");
 			ArrayList<String> alunos = new ArrayList<>();
 
 			Verificar_Login v = new Verificar_Login();
@@ -6693,7 +8238,76 @@ public class TechShineController {
 	}
 
 	@GetMapping("/Professor-Minha-Seguranca")
-	public String prof_Seguranca(Model model) {
+	public String prof_Seguranca(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		this.repetir="Professor-Minha-Seguranca";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -6705,10 +8319,10 @@ public class TechShineController {
 			Salvar_SQL s = new Salvar_SQL();
 
 			int renda;
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 
-			renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
+			renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+					id);
 
 			if (renda == 0) {
 				model.addAttribute("renda", "Irregular");
@@ -6716,9 +8330,9 @@ public class TechShineController {
 				model.addAttribute("renda", "Regular");
 			}
 
-			p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "disciplinas_dos_profs", "turma", "bi", this.bi, 0);
-			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma", "bi",
-					this.bi, 0);
+			p.pesquisarUmConteudo_Numa_Linha_String(BD, "Disciplinas_Dos_Profs", "turma", "bi", bi, 0);
+			ArrayList<String> turmas = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs", "turma", "bi",
+					bi, 0);
 
 			int qalunos = 0;
 			int contador = 0;
@@ -6726,19 +8340,19 @@ public class TechShineController {
 			Controle_ID_SQL cID = new Controle_ID_SQL();
 			for (String turma : turmas) {
 
-				qalunos = qalunos + cID.recuperarCodigo(this.BD, turma, "id");
+				qalunos = qalunos + cID.recuperarCodigo(BD, turma, "id");
 				System.out.println("qalunos: " + qalunos);
 				++contador;
 			}
 
-			// ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "desciplina", "bi", this.bi, 0);
-			// ArrayList<String> cursos =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "curso", "bi", this.bi, 0);
-			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "turno", "bi", this.bi, 0);
-			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(this.BD,
-			// "disciplinas_dos_profs", "nivel", "bi", this.bi, 0);
+			// ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "desciplina", "bi", bi, 0);
+			// ArrayList<String> cursos =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "curso", "bi", bi, 0);
+			// ArrayList<String> turnos =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "turno", "bi", bi, 0);
+			// ArrayList<String> niveis =p.pesquisarTudoEmString_Restrito(BD,
+			// "Disciplinas_Dos_Profs", "nivel", "bi", bi, 0);
 
 			Date d = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
@@ -6768,6 +8382,8 @@ public class TechShineController {
 
 	@GetMapping("/Professor-Minha-Financa")
 	public String prof_Financa() {
+		
+		this.repetir="Professor-Minha-Financa";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -6795,177 +8411,85 @@ public class TechShineController {
 	// TERMINAR SESSAO, DEFINICAO E FINANCA NA WEBgENIUS
 
 	// Area de Tesouraria
-
-	@GetMapping({ "/Tesouraria", "/Tesouraria-Pagar-Propina", "/Tesouraria-Pagar-Matricula",
-			"/Tesouraria-Pagar-Documento", "/Tesouraria-Pagar-Estagio", "/Tesouraria-Pagar-Material",
-			"/Tesouraria-Pagar-Falta", "/Tesouraria-Minha-Financa", "/Tesouraria-Minha-Seguranca",
-			"/Tesouraria-Pagar-Confirmacao", "/Propina" })
+	
+	@GetMapping({"/Tesouraria-Minha-Financa",
+		"/webgenius/Tesouraria-Minha-Financa",})
+	
+	
 	public String tesouraria(HttpServletRequest request, Model model) {
+		
+		
+Cookie[] cookies = request.getCookies();
 
-		String requisicao;
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+
 		String nomeDaPagina = null;
 		estado = -5;
-		requisicao = request.getRequestURI();
 
-		if (requisicao.equalsIgnoreCase("/Tesouraria")) {
-
-			System.out.println("Request2: " + request.getRequestURI());
-			System.out.println("Senha: " + senha);
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				Pesquisar_SQL p = new Pesquisar_SQL();
-				Salvar_SQL s = new Salvar_SQL();
-
-				String mes = s.mesActual(this.BD);
-
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-						"", this.id);
-				int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-				int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-				int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
-
-				if (renda == 0) {
-					model.addAttribute("renda", "Irregular");
-				} else {
-					model.addAttribute("renda", "Regular");
-				}
-
-				model.addAttribute("p", p2);
-				model.addAttribute("mc", mc);
-				model.addAttribute("os", os);
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				nomeDaPagina = "WebGnius/tesouraria/inicio";
-				this.pagina = nomeDaPagina;
-				// }
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Tesouraria-Pagar-Propina")) {
-
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				Pesquisar_SQL p = new Pesquisar_SQL();
-				Salvar_SQL s = new Salvar_SQL();
-
-				String mes = s.mesActual(this.BD);
-
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-						"", this.id);
-				int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-				int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-				int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
-
-				if (renda == 0) {
-					model.addAttribute("renda", "Irregular");
-				} else {
-					model.addAttribute("renda", "Regular");
-				}
-
-				ArrayList<Curso> cursos = p.Listar_Cursos(this.BD);
-				ArrayList<String> tCursos = new ArrayList<>();
-
-				for (Curso c : cursos) {
-
-					tCursos.add(c.getNome());
-				}
-				ArrayList<String> niveis = p.pesquisarTudoEmString(this.BD, "infoescola", "niveis");
-
-				
-				ArrayList<String> turmasManha = p.pesquisarTudoEmString(this.BD, "controle_turmas", "Manha");
-				ArrayList<String> turmasTarde = p.pesquisarTudoEmString(this.BD, "controle_turmas", "Tarde");
-				ArrayList<String> turmasNoite = p.pesquisarTudoEmString(this.BD, "controle_turmas", "Noite");
-
-				ArrayList<ArrayList<String>> todasTurmas = new ArrayList<>();
-
-				todasTurmas.add(turmasManha);
-				todasTurmas.add(turmasTarde);
-				todasTurmas.add(turmasNoite);
-
-				ArrayList<String> alunosManha = new ArrayList<>();
-				ArrayList<String> alunosTarde = new ArrayList<>();
-				ArrayList<String> alunosNoite = new ArrayList<>();
-				ArrayList<Integer> todos_Processos = new ArrayList<>();
-
-				int contador = 0;
-				for (ArrayList<String> cadaTurno : todasTurmas) {
-
-					++contador;
-					for (String turma : cadaTurno) {
-
-						ArrayList<String> alunos = p.pesquisarTudoEmString(this.BD, turma, "Alunos");
-						ArrayList<Integer> NProc = p.pesquisarTudoEmInt(this.BD, turma, "NProc");
-						
-						for (Integer nproc : NProc) {
-							
-							
-							todos_Processos.add(nproc);
-						}
-						
-
-						if (contador == 1) {
-							System.out.println("Manha: ");
-							for (String al : alunos) {
-
-								System.out.println("Aluno: " + al);
-								alunosManha.add(al);
-							}
-						} else if (contador == 2) {
-							System.out.println("Tarde: ");
-							for (String al : alunos) {
-
-								System.out.println("Aluno: " + al);
-								alunosTarde.add(al);
-							}
-						} else if (contador == 3) {
-
-							System.out.println("Noite: ");
-							for (String al : alunos) {
-
-								System.out.println("Aluno: " + al);
-								alunosNoite.add(al);
-							}
-						}
-					}
-
-				}
-				
-				
-				
-				
-				model.addAttribute("processos", todos_Processos);
-				model.addAttribute("manha", alunosManha);
-				model.addAttribute("tarde", alunosTarde);
-				model.addAttribute("noite", alunosNoite);
-
-				model.addAttribute("p", p2);
-				model.addAttribute("cursos", tCursos);
-				model.addAttribute("niveis", niveis);
-				model.addAttribute("mc", mc);
-				model.addAttribute("os", os);
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-				nomeDaPagina = "WebGnius/tesouraria/propina";
-
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Tesouraria-Pagar-Matricula")) {
+			
+			this.repetir="Tesouraria-Minha-Financa";
 
 			if (entrarNoSistema.podeAbrirAPagina(senha)) {
 
@@ -6974,249 +8498,13 @@ public class TechShineController {
 				Pesquisar_SQL p = new Pesquisar_SQL();
 				Salvar_SQL s = new Salvar_SQL();
 
-				String mes = s.mesActual(this.BD);
-
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-						"", this.id);
-				int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-				int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-				int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
-
-				if (renda == 0) {
-					model.addAttribute("renda", "Irregular");
-				} else {
-					model.addAttribute("renda", "Regular");
-				}
-
-				ArrayList<String> docs = p.pesquisarTudoEmString(this.BD, "Escola_Financa", "Matricula");
-				ArrayList<Integer> preco = p.pesquisarTudoEmInt(this.BD, "Escola_Financa", "precoMatricula");
-
-				ArrayList<String> tCursos = new ArrayList<>();
-
-				String conteudo = "";
-				int preco2 = 0;
-				for (int i = 0; i < docs.size(); i++) {
-
-					if ((docs.size() > 0) && (i < docs.size())) {
-						conteudo = docs.get(i);
-					}
-
-					if ((preco.size() > 0) && (i < preco.size())) {
-						preco2 = preco.get(i);
-					}
-
-					tCursos.add(conteudo + " " + preco2 + ",00Kz");
-				}
-
-				model.addAttribute("matriculas", tCursos);
-				model.addAttribute("p", p2);
-				model.addAttribute("mc", mc);
-				model.addAttribute("os", os);
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				nomeDaPagina = "WebGnius/tesouraria/matricula";
-
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Tesouraria-Pagar-Documento")) {
-
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				Pesquisar_SQL p = new Pesquisar_SQL();
-				Salvar_SQL s = new Salvar_SQL();
-
-				String mes = s.mesActual(this.BD);
-
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-						"", this.id);
-				int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-				int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-				int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
-
-				if (renda == 0) {
-					model.addAttribute("renda", "Irregular");
-				} else {
-					model.addAttribute("renda", "Regular");
-				}
-
-				ArrayList<String> docs = p.pesquisarTudoEmString(this.BD, "Escola_Financa", "Docs");
-				ArrayList<Integer> preco = p.pesquisarTudoEmInt(this.BD, "Escola_Financa", "precoDoc");
-
-				ArrayList<String> tCursos = new ArrayList<>();
-				String conteudo = "";
-				int preco2 = 0;
-				for (int i = 0; i < docs.size(); i++) {
-
-					if ((docs.size() > 0) && (i < docs.size())) {
-						conteudo = docs.get(i);
-					}
-
-					if ((preco.size() > 0) && (i < preco.size())) {
-						preco2 = preco.get(i);
-					}
-
-					tCursos.add(conteudo + " " + preco2 + ",00Kz");
-				}
-
-				model.addAttribute("documentos", tCursos);
-
-				model.addAttribute("p", p2);
-				model.addAttribute("mc", mc);
-				model.addAttribute("os", os);
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				nomeDaPagina = "WebGnius/tesouraria/documentos";
-
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Tesouraria-Pagar-Estagio")) {
-
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				Pesquisar_SQL p = new Pesquisar_SQL();
-				Salvar_SQL s = new Salvar_SQL();
-
-				String mes = s.mesActual(this.BD);
-
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-						"", this.id);
-				int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-				int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-				int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
-
-				if (renda == 0) {
-					model.addAttribute("renda", "Irregular");
-				} else {
-					model.addAttribute("renda", "Regular");
-				}
-
-				ArrayList<Integer> estagio = p.pesquisarTudoEmInt(this.BD, "Escola_Financa", "Estagio");
-				int estagio2 = 0;
-				if (estagio.size() > 0) {
-
-					estagio2 = estagio.get(0);
-				}
-
-				model.addAttribute("estagio", estagio2 + ",00 Kz");
-
-				model.addAttribute("p", p2);
-				model.addAttribute("mc", mc);
-				model.addAttribute("os", os);
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				nomeDaPagina = "WebGnius/tesouraria/estagio";
-
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Tesouraria-Pagar-Falta")) {
-
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				Pesquisar_SQL p = new Pesquisar_SQL();
-				Salvar_SQL s = new Salvar_SQL();
-
-				String mes = s.mesActual(this.BD);
-
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-						"", this.id);
-				int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-				int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-				int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
-
-				if (renda == 0) {
-					model.addAttribute("renda", "Irregular");
-				} else {
-					model.addAttribute("renda", "Regular");
-				}
-
-				ArrayList<String> docs = p.pesquisarTudoEmString(this.BD, "Escola_Financa", "Faltas");
-				ArrayList<Integer> preco = p.pesquisarTudoEmInt(this.BD, "Escola_Financa", "precoFalta");
-
-				ArrayList<String> tCursos = new ArrayList<>();
-				String conteudo = "";
-				int preco2 = 0;
-				for (int i = 0; i < docs.size(); i++) {
-
-					if ((docs.size() > 0) && (i < docs.size())) {
-						conteudo = docs.get(i);
-					}
-
-					if ((preco.size() > 0) && (i < preco.size())) {
-						preco2 = preco.get(i);
-					}
-
-					tCursos.add(conteudo + " " + preco2 + ",00Kz");
-				}
-
-				model.addAttribute("faltas", tCursos);
-
-				model.addAttribute("p", p2);
-				model.addAttribute("mc", mc);
-				model.addAttribute("os", os);
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				nomeDaPagina = "WebGnius/tesouraria/faltas";
-
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Tesouraria-Minha-Financa")) {
-
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				Pesquisar_SQL p = new Pesquisar_SQL();
-				Salvar_SQL s = new Salvar_SQL();
-
-				String mes = s.mesActual(this.BD);
-
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-						"", this.id);
-				int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-				int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-				int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
+				String mes = s.mesActual(BD);
+
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+						"", id);
+				int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "Func_Diario", "Prop", "bi", bi, 0);
+				int mc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "Func_Diario", "MatEConf", "bi", bi, 0);
+				int os = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "Func_Diario", "servicos", "bi", bi, 0);
 
 				if (renda == 0) {
 					model.addAttribute("renda", "Irregular");
@@ -7242,278 +8530,6 @@ public class TechShineController {
 				this.pagina = nomeDaPagina;
 			}
 
-		} else if (requisicao.equalsIgnoreCase("/Tesouraria-Minha-Seguranca")) {
-
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				Pesquisar_SQL p = new Pesquisar_SQL();
-				Salvar_SQL s = new Salvar_SQL();
-
-				String mes = s.mesActual(this.BD);
-
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-						"", this.id);
-				int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-				int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-				int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
-
-				if (renda == 0) {
-					model.addAttribute("renda", "Irregular");
-				} else {
-					model.addAttribute("renda", "Regular");
-				}
-
-				model.addAttribute("p", p2);
-				model.addAttribute("mc", mc);
-				model.addAttribute("os", os);
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				nomeDaPagina = "WebGnius/tesouraria/definicao";
-
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		}
-
-		else if (requisicao.equalsIgnoreCase("/Tesouraria-Pagar-Material")) {
-
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				Pesquisar_SQL p = new Pesquisar_SQL();
-				Salvar_SQL s = new Salvar_SQL();
-
-				String mes = s.mesActual(this.BD);
-
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-						"", this.id);
-				int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-				int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-				int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
-
-				if (renda == 0) {
-					model.addAttribute("renda", "Irregular");
-				} else {
-					model.addAttribute("renda", "Regular");
-				}
-
-				ArrayList<String> docs = p.pesquisarTudoEmString(this.BD, "Escola_Financa", "Mat");
-				ArrayList<Integer> preco = p.pesquisarTudoEmInt(this.BD, "Escola_Financa", "precoMat");
-
-				ArrayList<String> tCursos = new ArrayList<>();
-				String conteudo = "";
-				int preco2 = 0;
-				for (int i = 0; i < docs.size(); i++) {
-
-					if ((docs.size() > 0) && (i < docs.size())) {
-						conteudo = docs.get(i);
-					}
-
-					if ((preco.size() > 0) && (i < preco.size())) {
-						preco2 = preco.get(i);
-					}
-
-					tCursos.add(conteudo + " " + preco2 + ",00Kz");
-				}
-
-				model.addAttribute("materias", tCursos);
-
-				model.addAttribute("p", p2);
-				model.addAttribute("mc", mc);
-				model.addAttribute("os", os);
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				nomeDaPagina = "WebGnius/tesouraria/material";
-
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Tesouraria-Pagar-Confirmacao")) {
-
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				Pesquisar_SQL p = new Pesquisar_SQL();
-				Salvar_SQL s = new Salvar_SQL();
-
-				String mes = s.mesActual(this.BD);
-
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-						"", this.id);
-				int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-				int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-				int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
-
-				if (renda == 0) {
-					model.addAttribute("renda", "Irregular");
-				} else {
-					model.addAttribute("renda", "Regular");
-				}
-
-				ArrayList<String> docs = p.pesquisarTudoEmString(this.BD, "Escola_Financa", "confirmacao");
-				ArrayList<Integer> preco = p.pesquisarTudoEmInt(this.BD, "Escola_Financa", "precoConfir");
-
-				ArrayList<String> tCursos = new ArrayList<>();
-				String conteudo = "";
-				int preco2 = 0;
-				for (int i = 0; i < docs.size(); i++) {
-
-					if ((docs.size() > 0) && (i < docs.size())) {
-						conteudo = docs.get(i);
-					}
-
-					if ((preco.size() > 0) && (i < preco.size())) {
-						preco2 = preco.get(i);
-					}
-
-					tCursos.add(conteudo + " " + preco2 + ",00Kz");
-				}
-
-				model.addAttribute("confirmacoes", tCursos);
-
-				model.addAttribute("p", p2);
-				model.addAttribute("mc", mc);
-				model.addAttribute("os", os);
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				nomeDaPagina = "WebGnius/tesouraria/confirmacao";
-
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Propina")) {
-
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				Pesquisar_SQL p = new Pesquisar_SQL();
-				Salvar_SQL s = new Salvar_SQL();
-
-				String mes = s.mesActual(this.BD);
-
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-						"", this.id);
-				int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-				int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-				int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
-
-				if (renda == 0) {
-					model.addAttribute("renda", "Irregular");
-				} else {
-					model.addAttribute("renda", "Regular");
-				}
-
-				String turma = this.alunoFinanca.getTurmaDoAluno();
-				int id = this.alunoFinanca.getId();
-
-				ArrayList<String> mesePagos = s.tesouraria_AlunosMezesPagos(this.BD, turma, id);
-				ArrayList<String> meseNPagos = s.tesouraria_AlunosMezes_Não_Pagos(this.BD, turma, id);
-				ArrayList<String> precos = s.tesouraria_MsesQueVaiPagar(this.BD, this.cursoAluno,this.nivel);
-				ArrayList<Pagamento> meses = new ArrayList<>();
-
-				for (String c : mesePagos) {
-
-					System.out.println("Mes  Pago: " + c);
-				}
-
-				for (String c : meseNPagos) {
-
-					System.out.println("Mes Não Pago: " + c);
-				}
-
-				for (int i = 0; i < mesePagos.size(); i++) {
-
-					Pagamento mes1 = new Pagamento();
-
-					mes1.setPagos(mesePagos.get(i));
-					mes1.setnPagos(meseNPagos.get(i));
-
-					meses.add(mes1);
-				}
-
-				System.out.println("meses: " + meses.size());
-
-				for (Pagamento c : meses) {
-
-					System.out.println("Meses  Pago: " + c.getPagos());
-					System.out.println("Meses Não Pago: " + c.getnPagos());
-				}
-
-				String aluno = this.alunoFinanca.getNome();
-
-				String mes2 = s.mesActual(this.BD);
-				Date dataActual = new Date();
-				SimpleDateFormat sdf2 = new SimpleDateFormat("dd/MM/yyyy");
-				String[] data = sdf2.format(dataActual).split("/");
-
-				int diaActual = Integer.parseInt(data[0]);
-				int tempoSemMulta = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "Escola_Financa", "TempoPropina", "id", "",
-						1);
-				int multa = p.pesquisarTudoEmInt(BD, "adminfinanca", "multa").get(0);
-				ArrayList<String> multas = new ArrayList<>();
-				if ((diaActual > tempoSemMulta) && (multa > 0)) {
-					multas = s.tesouraria_Multas(this.BD, this.cursoAluno,this.nivel);
-				}
-
-				System.out.println("Aluno: " + aluno);
-
-				model.addAttribute("aluno", aluno);
-				model.addAttribute("precos", precos);
-				model.addAttribute("meses", meses);
-				model.addAttribute("mesActual", mes2);
-				model.addAttribute("diaActual", tempoSemMulta);
-				model.addAttribute("multas", multas);
-				model.addAttribute("turma", turma);
-
-				model.addAttribute("p", p2);
-				model.addAttribute("mc", mc);
-				model.addAttribute("os", os);
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				nomeDaPagina = "WebGnius/tesouraria/historicoDoAluno";
-
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		}
-
 		return this.pagina;
 	}
 
@@ -7530,7 +8546,10 @@ public class TechShineController {
 		
 		String nivel = aluno.getNivel();
 		this.nivel= nivel;
+		
 		String turno = aluno.getTurno();
+		
+		this.turno = turno;
 		String nome = aluno.getNome();
 		
 		String bi="";
@@ -7545,16 +8564,19 @@ public class TechShineController {
 		
 		aluno.setNivel(nivel);
 		aluno.setTurno(turno);
-		aluno.setNome(nome);
 		
 		
 		
-		Validacoes b = v.tesouraria_Propina_Validar(this.BD, this.cursoAluno, nivel, turno, nome,bi);
-		//r.imprimirRelatorio(request,response);
+		
+		Validacoes b = v.tesouraria_Propina_Validar(BD, this.cursoAluno, nivel, turno, nome,bi);
+		/*
+		tecShine.com.Relatorios.Relatorio r = new tecShine.com.Relatorios.Relatorio();
+		r.imprimirRelatorio(request,response);*/
 
 		if(b.isTemErro()) {
 			
-			this.alunoFinanca = s.tesourariaPagar_Propina_FASE1(this.BD, aluno);
+			this.alunoFinanca = s.tesourariaPagar_Propina_FASE1(BD, aluno);
+			aluno.setNome(this.alunoFinanca.getNome());
 			this.pagina= "redirect:Propina";
 			
 		}else {
@@ -7573,12 +8595,21 @@ public class TechShineController {
 		return this.pagina;
 	}
 
+	
+	
 	@PostMapping({ "/Tesouraria-pagar" })
-	public void tesourariaPagar(HttpServletResponse response,Aluno aluno, Model model) {
+	public String tesourariaPagar(HttpServletResponse response,Aluno aluno, Model model,HttpServletRequest request) throws InterruptedException {
 
-		Salvar_SQL s = new Salvar_SQL();
-		Pesquisar_SQL p = new Pesquisar_SQL();
-		
+
+		 String pagina = null;		
+			Salvar_SQL s = new Salvar_SQL();
+			Pesquisar_SQL p = new Pesquisar_SQL();
+			
+		synchronized(this){																																																																																																																																																																			
+			
+			
+			Thread.sleep(3000);
+	   
 		String mesesp =  aluno.getMesesAPagar();
 		
 		System.out.println(" mesesp: "+mesesp);
@@ -7594,8 +8625,8 @@ public class TechShineController {
 		
 		int idAluno = aluno.getId();
 		
-		Pagamento pagamento = s.tesouraria_EfectuarOPagamento(this.BD, this.alunoFinanca.getTurmaDoAluno(),
-				this.alunoFinanca.getId(), aluno.getMesesAPagar(), this.cursoAluno, idAluno, this.bi,this.nivel);
+		Pagamento pagamento = s.tesouraria_EfectuarOPagamento(BD, this.alunoFinanca.getTurmaDoAluno(),
+				this.alunoFinanca.getId(), aluno.getMesesAPagar(), this.cursoAluno, idAluno, bi,this.nivel);
 
 		if (pagamento.isPagamentoEfectuado()) {
 
@@ -7605,7 +8636,7 @@ public class TechShineController {
 			
 			
              String turma = pagamento.getTurma();
-             ArrayList<String> mesesPagos = s.tesouraria_AlunosMezesPagos(this.BD, turma, idAluno);
+             ArrayList<String> mesesPagos = s.tesouraria_AlunosMezesPagos(BD, turma, idAluno);
 			
              System.out.println("Meses Pagos");
              
@@ -7614,6 +8645,7 @@ public class TechShineController {
             	 System.out.println("Mes: "+c);
              }
 			ImprimirRelatorio ir = new ImprimirRelatorio();
+			
 			
 			int precoDoCurso=0;		
 			
@@ -7628,954 +8660,216 @@ public class TechShineController {
 			}
 			
 			
-			int valorPago = precoDoCurso;
-			int numeroDeEstudante = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, turma,"NProc", "id", "", this.alunoFinanca.getId());
-			  ir.relatorioPropina(this.BD,response, this.configurarEscola, pagamento.getCurso(), "Propina", valorPago, this.configurarNome, pagarQMeses, turma, mesesPagos, pagamento.getAluno(), numeroDeEstudante+"");
+			Usuario usuario = p.retornaUsuario(BD,aluno.getIdFunc(),this.configurarEscola);
+			
+			
+			boolean existeuUsuario = usuario.isExisteUsuario();
+			
+			if(existeuUsuario){
+				
+			          this.configurarNome = usuario.getNome();
+			          int valorPago = precoDoCurso;
+			          int numeroDeEstudante = p.pesquisarUmConteudo_Numa_Linha_Int(BD, turma,"NProc", "id", "", this.alunoFinanca.getId());
+			          ir.relatorioPropina(BD,response, this.configurarEscola, pagamento.getCurso(), "Propina", valorPago, this.configurarNome,
+					  pagarQMeses, turma, mesesPagos, pagamento.getAluno(), 
+					  numeroDeEstudante+"",request,this.turno,this.nivel);
+					  
+					  pagina = "redirect:Tesouraria-Pagar-Propina";
+			  
+			}else{
+
+               pagina = "redirect:Propina";
+		       //return pagina;
+   
+			}   
+			
 
 
+ 		}
+		
+		
+		return pagina;
+		
 		}
-		//return "redirect:Tesouraria-Pagar-Propina";
 
 	}
 
 	@PostMapping({ "/Tesouraria-Pagar-Matricula" })
 	public String tesourariaPaga_matricula(HttpServletRequest resquest,HttpServletResponse response,Curso curso, Model model) {
 
-		Salvar_SQL s = new Salvar_SQL();
+		
+		synchronized(this){
+			
+			Salvar_SQL s = new Salvar_SQL();
 
-		String nome = curso.getNome();
-		String[] a = nome.split(" ");
-		nome = a[0];
-		s.tesouraria_Pagar_Matricula(BD, nome, this.bi);
+			String nome = curso.getNome();
+			String[] a = nome.split(" ");
+			nome = a[0];
+			s.tesouraria_Pagar_Matricula(BD, nome, bi);
 
-		//r.imprimirRelatorio(resquest,response);
+			//r.imprimirRelatorio(resquest,response);
 
-		// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
-		return "redirect:Tesouraria-Pagar-Matricula";
+			// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
+			return "redirect:Tesouraria-Pagar-Matricula";
+		}
+		
 	}
 
 	@PostMapping({ "/Tesouraria-Pagar-Confirmacao" })
 	public String tesourariaPaga_Confirmacao(Curso curso, Model model) {
 
-		Salvar_SQL s = new Salvar_SQL();
+		
+		synchronized(this){
+			
+			Salvar_SQL s = new Salvar_SQL();
 
-		String nome = curso.getNome();
-		String[] a = nome.split(" ");
-		nome = a[0];
-		s.tesouraria_Pagar_Confirmacao(BD, nome, this.bi);
+			String nome = curso.getNome();
+			String[] a = nome.split(" ");
+			nome = a[0];
+			s.tesouraria_Pagar_Confirmacao(BD, nome, bi);
 
-		imprimir(null, null, "Confirmacao");
+			imprimir(null, null, "Confirmacao");
 
-		// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
-		return "redirect:Tesouraria-Pagar-Confirmacao";
+			// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
+			return "redirect:Tesouraria-Pagar-Confirmacao";
+		}
+		
 	}
 
 	@PostMapping({ "/Tesouraria-Pagar-Estagio" })
 	public String tesourariaPaga_Estagio() {
+		
+		synchronized(this){
+			
+			Salvar_SQL s = new Salvar_SQL();
+			s.tesouraria_Pagar_Estagio(BD, bi);
+			imprimir(null, null, "Estagio");
 
-		Salvar_SQL s = new Salvar_SQL();
-		s.tesouraria_Pagar_Estagio(this.BD, this.bi);
-		imprimir(null, null, "Estagio");
+			// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
+			return "redirect:Tesouraria-Pagar-Estagio";
+			
+		}
 
-		// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
-		return "redirect:Tesouraria-Pagar-Estagio";
+		
 	}
 
 	@PostMapping({ "/Tesouraria-Pagar-Material" })
 	public String tesourariaPaga_Material(Financa financa, Model model) {
 
-		Salvar_SQL s = new Salvar_SQL();
+		
+		synchronized(this){
+			
+			Salvar_SQL s = new Salvar_SQL();
 
-		String nome = financa.getMaterias();
-		String[] a = nome.split(" ");
-		nome = a[0];
-		s.tesouraria_Pagar_Materias(this.BD, nome, this.bi);
-		imprimir(null, null, "Material");
-		// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
-		return "redirect:Tesouraria-Pagar-Material";
+			String nome = financa.getMaterias();
+			String[] a = nome.split(" ");
+			nome = a[0];
+			s.tesouraria_Pagar_Materias(BD, nome, bi);
+			imprimir(null, null, "Material");
+			// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
+			return "redirect:Tesouraria-Pagar-Material";
+		}
+		
 	}
 
 	@PostMapping({ "/Tesouraria-Pagar-Documento" })
 	public String tesourariaPaga_Documento(Financa financa, Model model) {
 
-		Salvar_SQL s = new Salvar_SQL();
+		
+		synchronized(this){
+			
+			Salvar_SQL s = new Salvar_SQL();
 
-		String nome = financa.getDoc();
-		String[] a = nome.split(" ");
-		nome = a[0];
-		s.tesouraria_Pagar_Documento(this.BD, nome, this.bi);
+			String nome = financa.getDoc();
+			String[] a = nome.split(" ");
+			nome = a[0];
+			s.tesouraria_Pagar_Documento(BD, nome, bi);
 
-		imprimir(null, null, "Documento");
-		// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
-		return "redirect:Tesouraria-Pagar-Documento";
+			imprimir(null, null, "Documento");
+			// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
+			return "redirect:Tesouraria-Pagar-Documento";
+		}
+		
 	}
 
 	@PostMapping({ "/Tesouraria-Pagar-Falta" })
 	public String tesourariaPaga_Falta(Financa financa, Model model) {
 
-		Salvar_SQL s = new Salvar_SQL();
+		
+		synchronized(this){
+			
+			
+			Salvar_SQL s = new Salvar_SQL();
 
-		String nome = financa.getFalta();
-		String[] a = nome.split(" ");
-		nome = a[0];
-		s.tesouraria_Pagar_Falta(this.BD, nome, this.bi);
+			String nome = financa.getFalta();
+			String[] a = nome.split(" ");
+			nome = a[0];
+			s.tesouraria_Pagar_Falta(BD, nome, bi);
 
-		imprimir(null, null, "Falta");
-		// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
-		return "redirect:Tesouraria-Pagar-Falta";
+			imprimir(null, null, "Falta");
+			// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
+			return "redirect:Tesouraria-Pagar-Falta";
+		}
+		
 	}
 
 	// Metodos Da Secretaria
-
-	@GetMapping({ "/Secretaria", "/Secretaria-Agenda", "/Secretaria-Confirmacao", "/Secretaria-Financa",
-			"/Secretaria-Matricula", "/Secretaria-Estagio", "/Secretaria-Materiais", "/Secretaria-Documentos",
-			"/Secretaria-Faltas", "/Secretaria-Minha-Seguranca", "/Secretaria-Pautas", "/Secretaria-Minha-Financa",
-			"/Secretaria-Lista"
-
-	})
-	public String secretaria(HttpServletRequest request, Model model) {
-
-		String requisicao;
-		String nomeDaPagina = null;
-		estado = -5;
-		requisicao = request.getRequestURI();
-
-		if (requisicao.equalsIgnoreCase("/Secretaria")) {
-
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				Pesquisar_SQL p = new Pesquisar_SQL();
-				Salvar_SQL s = new Salvar_SQL();
-
-				String mes = s.mesActual(this.BD);
-
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-						"", this.id);
-				int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-				int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-				int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
-
-				if (renda == 0) {
-					model.addAttribute("renda", "Irregular");
-				} else {
-					model.addAttribute("renda", "Regular");
-				}
-
-				/*
-				 * p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "disciplinas_dos_profs",
-				 * "turma", "bi", this.bi, 0); ArrayList<String> turmas
-				 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma",
-				 * "bi", this.bi, 0);
-				 * 
-				 * int qalunos=0; int contador=0;
-				 * 
-				 * for (String turma : turmas) {
-				 * 
-				 * qalunos= qalunos + p.pesquisarTudoEmInt(this.BD, turma, "NDeAlunos").get(0);
-				 * System.out.println("qalunos: "+qalunos); ++contador; }
-				 * 
-				 * //ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(this.BD,
-				 * "disciplinas_dos_profs", "desciplina", "bi", this.bi, 0); //ArrayList<String>
-				 * cursos =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
-				 * "curso", "bi", this.bi, 0); //ArrayList<String> turnos
-				 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turno",
-				 * "bi", this.bi, 0); //ArrayList<String> niveis
-				 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "nivel",
-				 * "bi", this.bi, 0);
-				 * 
-				 * Date d = new Date(); SimpleDateFormat sdf = new
-				 * SimpleDateFormat("dd/MM/yyyy"); String data = sdf.format(d);
-				 * 
-				 */
-
-				
-				Date d = new Date();
-				SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-				
-				model.addAttribute("data", sdf.format(d));
-				model.addAttribute("p", p2);
-				model.addAttribute("mc", mc);
-				model.addAttribute("os", os);
-
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				nomeDaPagina = "WebGnius/secretaria/inicio";
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Secretaria-Agenda")) {
-
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				Pesquisar_SQL p = new Pesquisar_SQL();
-				Salvar_SQL s = new Salvar_SQL();
-
-				String mes = s.mesActual(this.BD);
-
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-						"", this.id);
-				int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-				int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-				int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
-
-				if (renda == 0) {
-					model.addAttribute("renda", "Irregular");
-				} else {
-					model.addAttribute("renda", "Regular");
-				}
-
-				/*
-				 * p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "disciplinas_dos_profs",
-				 * "turma", "bi", this.bi, 0); ArrayList<String> turmas
-				 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma",
-				 * "bi", this.bi, 0);
-				 * 
-				 * int qalunos=0; int contador=0;
-				 * 
-				 * for (String turma : turmas) {
-				 * 
-				 * qalunos= qalunos + p.pesquisarTudoEmInt(this.BD, turma, "NDeAlunos").get(0);
-				 * System.out.println("qalunos: "+qalunos); ++contador; }
-				 * 
-				 * //ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(this.BD,
-				 * "disciplinas_dos_profs", "desciplina", "bi", this.bi, 0); //ArrayList<String>
-				 * cursos =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
-				 * "curso", "bi", this.bi, 0); //ArrayList<String> turnos
-				 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turno",
-				 * "bi", this.bi, 0); //ArrayList<String> niveis
-				 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "nivel",
-				 * "bi", this.bi, 0);
-				 * 
-				 * Date d = new Date(); SimpleDateFormat sdf = new
-				 * SimpleDateFormat("dd/MM/yyyy"); String data = sdf.format(d);
-				 * 
-				 */
-
-				model.addAttribute("p", p2);
-				model.addAttribute("mc", mc);
-				model.addAttribute("os", os);
-
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				nomeDaPagina = "WebGnius/secretaria/agendaDeServico";
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Secretaria-Confirmacao")) {
-
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				Pesquisar_SQL p = new Pesquisar_SQL();
-				Salvar_SQL s = new Salvar_SQL();
-
-				String mes = s.mesActual(this.BD);
-
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-						"", this.id);
-				int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-				int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-				int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
-
-				if (renda == 0) {
-					model.addAttribute("renda", "Irregular");
-				} else {
-					model.addAttribute("renda", "Regular");
-				}
-
-				/*
-				 * p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "disciplinas_dos_profs",
-				 * "turma", "bi", this.bi, 0); ArrayList<String> turmas
-				 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma",
-				 * "bi", this.bi, 0);
-				 * 
-				 * int qalunos=0; int contador=0;
-				 * 
-				 * for (String turma : turmas) {
-				 * 
-				 * qalunos= qalunos + p.pesquisarTudoEmInt(this.BD, turma, "NDeAlunos").get(0);
-				 * System.out.println("qalunos: "+qalunos); ++contador; }
-				 * 
-				 * //ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(this.BD,
-				 * "disciplinas_dos_profs", "desciplina", "bi", this.bi, 0); //ArrayList<String>
-				 * cursos =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
-				 * "curso", "bi", this.bi, 0); //ArrayList<String> turnos
-				 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turno",
-				 * "bi", this.bi, 0); //ArrayList<String> niveis
-				 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "nivel",
-				 * "bi", this.bi, 0);
-				 * 
-				 * Date d = new Date(); SimpleDateFormat sdf = new
-				 * SimpleDateFormat("dd/MM/yyyy"); String data = sdf.format(d);
-				 * 
-				 */
-
-				ArrayList<Curso> cursos = p.Listar_Cursos(this.BD);
-				ArrayList<String> tCursos = new ArrayList<>();
-
-				for (Curso c : cursos) {
-
-					tCursos.add(c.getNome());
-				}
-				ArrayList<String> niveis = p.pesquisarTudoEmString(this.BD, "infoescola", "niveis");
-
-				
-				
-				
-				
-				Date d = new Date();
-				SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-				
-				ArrayList<String> turmasManha = p.pesquisarTudoEmString(this.BD, "controle_turmas", "Manha");
-				ArrayList<String> turmasTarde = p.pesquisarTudoEmString(this.BD, "controle_turmas", "Tarde");
-				ArrayList<String> turmasNoite = p.pesquisarTudoEmString(this.BD, "controle_turmas", "Noite");
-
-				ArrayList<ArrayList<String>> todasTurmas = new ArrayList<>();
-
-				todasTurmas.add(turmasManha);
-				todasTurmas.add(turmasTarde);
-				todasTurmas.add(turmasNoite);
-
-				ArrayList<String> alunosManha = new ArrayList<>();
-				ArrayList<String> alunosTarde = new ArrayList<>();
-				ArrayList<String> alunosNoite = new ArrayList<>();
-
-				int contador = 0;
-				for (ArrayList<String> cadaTurno : todasTurmas) {
-
-					++contador;
-					for (String turma : cadaTurno) {
-
-						ArrayList<String> alunos = p.pesquisarTudoEmString(this.BD, turma, "Alunos");
-
-						if (contador == 1) {
-							System.out.println("Manha: ");
-							for (String al : alunos) {
-
-								System.out.println("Aluno: " + al);
-								alunosManha.add(al);
-							}
-						} else if (contador == 2) {
-							System.out.println("Tarde: ");
-							for (String al : alunos) {
-
-								System.out.println("Aluno: " + al);
-								alunosTarde.add(al);
-							}
-						} else if (contador == 3) {
-
-							System.out.println("Noite: ");
-							for (String al : alunos) {
-
-								System.out.println("Aluno: " + al);
-								alunosNoite.add(al);
-							}
-						}
-					}
-
-				}
-
-				
-				model.addAttribute("cursos", tCursos);
-				model.addAttribute("niveis", niveis);
-				model.addAttribute("manha", alunosManha);
-				model.addAttribute("tarde", alunosTarde);
-				model.addAttribute("noite", alunosNoite);
-				model.addAttribute("data", sdf.format(d));
-				model.addAttribute("p", p2);
-				model.addAttribute("mc", mc);
-				model.addAttribute("os", os);
-
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				nomeDaPagina = "WebGnius/secretaria/confirmacao";
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Secretaria-Minha-Financa")) {
-
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				Pesquisar_SQL p = new Pesquisar_SQL();
-				Salvar_SQL s = new Salvar_SQL();
-
-				String mes = s.mesActual(this.BD);
-
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-						"", this.id);
-				int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-				int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-				int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
-
-				if (renda == 0) {
-					model.addAttribute("renda", "Irregular");
-				} else {
-					model.addAttribute("renda", "Regular");
-				}
-
-				/*
-				 * p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "disciplinas_dos_profs",
-				 * "turma", "bi", this.bi, 0); ArrayList<String> turmas
-				 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma",
-				 * "bi", this.bi, 0);
-				 * 
-				 * int qalunos=0; int contador=0;
-				 * 
-				 * for (String turma : turmas) {
-				 * 
-				 * qalunos= qalunos + p.pesquisarTudoEmInt(this.BD, turma, "NDeAlunos").get(0);
-				 * System.out.println("qalunos: "+qalunos); ++contador; }
-				 * 
-				 * //ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(this.BD,
-				 * "disciplinas_dos_profs", "desciplina", "bi", this.bi, 0); //ArrayList<String>
-				 * cursos =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
-				 * "curso", "bi", this.bi, 0); //ArrayList<String> turnos
-				 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turno",
-				 * "bi", this.bi, 0); //ArrayList<String> niveis
-				 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "nivel",
-				 * "bi", this.bi, 0);
-				 * 
-				 * Date d = new Date(); SimpleDateFormat sdf = new
-				 * SimpleDateFormat("dd/MM/yyyy"); String data = sdf.format(d);
-				 * 
-				 */
-
-				model.addAttribute("p", p2);
-				model.addAttribute("mc", mc);
-				model.addAttribute("os", os);
-
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				nomeDaPagina = "WebGnius/secretaria/financa";
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Secretaria-Matricula")) {
-			
-
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				Pesquisar_SQL p = new Pesquisar_SQL();
-				Salvar_SQL s = new Salvar_SQL();
-
-				String mes = s.mesActual(this.BD);
-
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-						"", this.id);
-				int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-				int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-				int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
-
-				if (renda == 0) {
-					model.addAttribute("renda", "Irregular");
-				} else {
-					model.addAttribute("renda", "Regular");
-				}
-
-				ArrayList<Curso> cursos = p.Listar_Cursos(this.BD);
-				ArrayList<String> tCursos = new ArrayList<>();
-
-				for (Curso c : cursos) {
-
-					tCursos.add(c.getNome());
-				}
-				ArrayList<String> niveis = p.pesquisarTudoEmString(this.BD, "infoescola", "niveis");
-
-				
-				/*
-				 * p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "disciplinas_dos_profs",
-				 * "turma", "bi", this.bi, 0); ArrayList<String> turmas
-				 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma",
-				 * "bi", this.bi, 0);
-				 * 
-				 * int qalunos=0; int contador=0;
-				 * 
-				 * for (String turma : turmas) {
-				 * 
-				 * qalunos= qalunos + p.pesquisarTudoEmInt(this.BD, turma, "NDeAlunos").get(0);
-				 * System.out.println("qalunos: "+qalunos); ++contador; }
-				 * 
-				 * //ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(this.BD,
-				 * "disciplinas_dos_profs", "desciplina", "bi", this.bi, 0); //ArrayList<String>
-				 * cursos =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
-				 * "curso", "bi", this.bi, 0); //ArrayList<String> turnos
-				 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turno",
-				 * "bi", this.bi, 0); //ArrayList<String> niveis
-				 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "nivel",
-				 * "bi", this.bi, 0);
-				 * 
-				 * Date d = new Date(); SimpleDateFormat sdf = new
-				 * SimpleDateFormat("dd/MM/yyyy"); String data = sdf.format(d);
-				 * 
-				 */
-
-				
-				Date d = new Date();
-				SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-				
-				model.addAttribute("data", sdf.format(d));
-				
-				model.addAttribute("p", p2);
-				model.addAttribute("mc", mc);
-				model.addAttribute("os", os);
-				model.addAttribute("cursos", tCursos);
-				model.addAttribute("niveis", niveis);
-
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				nomeDaPagina = "WebGnius/secretaria/cadastrarAluno";
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Secretaria-Agenda2")) {
-
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				nomeDaPagina = "WebGnius/secretaria/agendaServico2";
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Secretaria-Lista")) {
-
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				nomeDaPagina = "WebGnius/secretaria/agendaServico2";
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		} else if (requisicao.equalsIgnoreCase("/Secretaria-Minha-Seguranca")) {
-
-			if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-				// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-				Pesquisar_SQL p = new Pesquisar_SQL();
-				Salvar_SQL s = new Salvar_SQL();
-
-				String mes = s.mesActual(this.BD);
-
-				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id",
-						"", this.id);
-				int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-				int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-				int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
-
-				if (renda == 0) {
-					model.addAttribute("renda", "Irregular");
-				} else {
-					model.addAttribute("renda", "Regular");
-				}
-
-				/*
-				 * p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "disciplinas_dos_profs",
-				 * "turma", "bi", this.bi, 0); ArrayList<String> turmas
-				 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma",
-				 * "bi", this.bi, 0);
-				 * 
-				 * int qalunos=0; int contador=0;
-				 * 
-				 * for (String turma : turmas) {
-				 * 
-				 * qalunos= qalunos + p.pesquisarTudoEmInt(this.BD, turma, "NDeAlunos").get(0);
-				 * System.out.println("qalunos: "+qalunos); ++contador; }
-				 * 
-				 * //ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(this.BD,
-				 * "disciplinas_dos_profs", "desciplina", "bi", this.bi, 0); //ArrayList<String>
-				 * cursos =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
-				 * "curso", "bi", this.bi, 0); //ArrayList<String> turnos
-				 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turno",
-				 * "bi", this.bi, 0); //ArrayList<String> niveis
-				 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "nivel",
-				 * "bi", this.bi, 0);
-				 * 
-				 * Date d = new Date(); SimpleDateFormat sdf = new
-				 * SimpleDateFormat("dd/MM/yyyy"); String data = sdf.format(d);
-				 * 
-				 */
-
-				
-				Date d = new Date();
-				SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-				
-				model.addAttribute("data", sdf.format(d));
-				model.addAttribute("p", p2);
-				model.addAttribute("mc", mc);
-				model.addAttribute("os", os);
-
-				model.addAttribute("nome", configurarNome);
-				model.addAttribute("escola", configurarEscola);
-
-				nomeDaPagina = "WebGnius/secretaria/definicao";
-				this.pagina = nomeDaPagina;
-				// }
-
-			} else {
-
-				estado = 0;
-				nomeDaPagina = "redirect:login";
-				this.pagina = nomeDaPagina;
-			}
-
-		}
-
-		return this.pagina;
-	}
-
-	@GetMapping("/Secretaria-Mini-Pauta")
-	public String secretariaMiniPauta(Model model) {
-
-		String nomeDaPagina = null;
-		estado = -5;
-
-		if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-			Pesquisar_SQL p = new Pesquisar_SQL();
-			Salvar_SQL s = new Salvar_SQL();
-
-			String mes = s.mesActual(this.BD);
-
-			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
-			int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-			int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-			int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
-
-			if (renda == 0) {
-				model.addAttribute("renda", "Irregular");
-			} else {
-				model.addAttribute("renda", "Regular");
-			}
-
-			/*
-			 * p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "disciplinas_dos_profs",
-			 * "turma", "bi", this.bi, 0); ArrayList<String> turmas
-			 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma",
-			 * "bi", this.bi, 0);
-			 * 
-			 * int qalunos=0; int contador=0;
-			 * 
-			 * for (String turma : turmas) {
-			 * 
-			 * qalunos= qalunos + p.pesquisarTudoEmInt(this.BD, turma, "NDeAlunos").get(0);
-			 * System.out.println("qalunos: "+qalunos); ++contador; }
-			 * 
-			 * //ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(this.BD,
-			 * "disciplinas_dos_profs", "desciplina", "bi", this.bi, 0); //ArrayList<String>
-			 * cursos =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
-			 * "curso", "bi", this.bi, 0); //ArrayList<String> turnos
-			 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turno",
-			 * "bi", this.bi, 0); //ArrayList<String> niveis
-			 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "nivel",
-			 * "bi", this.bi, 0);
-			 * 
-			 * Date d = new Date(); SimpleDateFormat sdf = new
-			 * SimpleDateFormat("dd/MM/yyyy"); String data = sdf.format(d);
-			 * 
-			 */
-
-			model.addAttribute("p", p2);
-			model.addAttribute("mc", mc);
-			model.addAttribute("os", os);
-
-			model.addAttribute("nome", configurarNome);
-			model.addAttribute("escola", configurarEscola);
-
-			nomeDaPagina = "WebGnius/secretaria/mini_Pautas";
-			this.pagina = nomeDaPagina;
-			// }
-
-		} else {
-
-			estado = 0;
-			nomeDaPagina = "redirect:login";
-			this.pagina = nomeDaPagina;
-		}
-
-		return this.pagina;
-
-	}
-
-	@GetMapping("/Secretaria-Provas-Marcadas")
-	public String secretariaProvas() {
-
-		String nomeDaPagina = null;
-		estado = -5;
-		if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-			nomeDaPagina = "WebGnius/secretaria/provasMarcadas";
-			this.pagina = nomeDaPagina;
-			// }
-
-		} else {
-
-			estado = 0;
-			nomeDaPagina = "redirect:login";
-			this.pagina = nomeDaPagina;
-		}
-
-		return this.pagina;
-	}
-
-	@GetMapping("/Secretaria-Prova-Info")
-	public String secretariaProvaInfo() {
-
-		String nomeDaPagina = null;
-		estado = -5;
-		if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-			nomeDaPagina = "WebGnius/secretaria/provaInfo";
-			this.pagina = nomeDaPagina;
-			// }
-
-		} else {
-
-			estado = 0;
-			nomeDaPagina = "redirect:login";
-			this.pagina = nomeDaPagina;
-		}
-
-		return this.pagina;
-	}
-
-	@GetMapping("/Secretaria-Turma-Info")
-	public String secretariaTurmaInfo() {
-
-		String nomeDaPagina = null;
-		estado = -5;
-		if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-			nomeDaPagina = "WebGnius/secretaria/turma_Info";
-			this.pagina = nomeDaPagina;
-			// }
-
-		} else {
-
-			estado = 0;
-			nomeDaPagina = "redirect:login";
-			this.pagina = nomeDaPagina;
-		}
-
-		return this.pagina;
-	}
-
-	@GetMapping("/Secretaria-Marcar-Prova")
-	public String secretariaMarprova() {
-
-		String nomeDaPagina = null;
-		estado = -5;
-		if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-			nomeDaPagina = "WebGnius/secretaria/marcarProva";
-			this.pagina = nomeDaPagina;
-			// }
-
-		} else {
-
-			estado = 0;
-			nomeDaPagina = "redirect:login";
-			this.pagina = nomeDaPagina;
-		}
-
-		return this.pagina;
-	}
-
-	@GetMapping("/Secretaria-Imprimir-Boletin")
-	public String secretariaBoletin(Model model) {
-
-		String nomeDaPagina = null;
-		estado = -5;
-		if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-
-			Pesquisar_SQL p = new Pesquisar_SQL();
-			Salvar_SQL s = new Salvar_SQL();
-
-			ArrayList<Curso> cursos = p.Listar_Cursos(this.BD);
-			ArrayList<String> tCursos = new ArrayList<>();
-
-			for (Curso c : cursos) {
-
-				tCursos.add(c.getNome());
-			}
-			ArrayList<String> niveis = p.pesquisarTudoEmString(this.BD, "infoescola", "niveis");
-
-			String mes = s.mesActual(this.BD);
-
-			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
-			int p2 = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "Prop", "bi", this.bi, 0);
-			int mc = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "MatEConf", "bi", this.bi, 0);
-			int os = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, "func_diario", "servicos", "bi", this.bi, 0);
-
-			if (renda == 0) {
-				model.addAttribute("renda", "Irregular");
-			} else {
-				model.addAttribute("renda", "Regular");
-			}
-
-			/*
-			 * p.pesquisarUmConteudo_Numa_Linha_String(this.BD, "disciplinas_dos_profs",
-			 * "turma", "bi", this.bi, 0); ArrayList<String> turmas
-			 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turma",
-			 * "bi", this.bi, 0);
-			 * 
-			 * int qalunos=0; int contador=0;
-			 * 
-			 * for (String turma : turmas) {
-			 * 
-			 * qalunos= qalunos + p.pesquisarTudoEmInt(this.BD, turma, "NDeAlunos").get(0);
-			 * System.out.println("qalunos: "+qalunos); ++contador; }
-			 * 
-			 * //ArrayList<String> desciplinas =p.pesquisarTudoEmString_Restrito(this.BD,
-			 * "disciplinas_dos_profs", "desciplina", "bi", this.bi, 0); //ArrayList<String>
-			 * cursos =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
-			 * "curso", "bi", this.bi, 0); //ArrayList<String> turnos
-			 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "turno",
-			 * "bi", this.bi, 0); //ArrayList<String> niveis
-			 * =p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs", "nivel",
-			 * "bi", this.bi, 0);
-			 * 
-			 * Date d = new Date(); SimpleDateFormat sdf = new
-			 * SimpleDateFormat("dd/MM/yyyy"); String data = sdf.format(d);
-			 * 
-			 */
-			
-			Date d = new Date();
-			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-			
-			model.addAttribute("data", sdf.format(d));
-
-			model.addAttribute("p", p2);
-			model.addAttribute("mc", mc);
-			model.addAttribute("os", os);
-
-			model.addAttribute("cursos", tCursos);
-			model.addAttribute("niveis", niveis);
-
-			model.addAttribute("nome", configurarNome);
-			model.addAttribute("escola", configurarEscola);
-
-			nomeDaPagina = "WebGnius/secretaria/imprimirBoletin";
-			this.pagina = nomeDaPagina;
-			// }
-
-		} else {
-
-			estado = 0;
-			nomeDaPagina = "redirect:login";
-			this.pagina = nomeDaPagina;
-		}
-
-		return this.pagina;
-	}
+	
+	
+	
+	
+	
+
+	
+
+	
+	
 
 	@PostMapping("/Secretaria-Imprimir-Boletin")
 	public String secretariaBoletin2(Model model, Aluno aluno) {
 
 		Pesquisar_SQL p = new Pesquisar_SQL();
 
-		AlunoNotas aluno2 = p.Listar_TurmasDoCurso3(this.BD, aluno);
+		AlunoNotas aluno2 = p.Listar_TurmasDoCurso3(BD, aluno);
 
 		if (aluno2.isAlunoExiste()) {
 
+			
+			// Aqui vai a Impressão do Boletim 
+			
+			// Actualizando os Servicos, tenho que descomentar a Acao abaixo
+			
+			
+			/*
+			 * int diario= p.pesquisarUmConteudo_Numa_Linha_Int(BD, "Func_Diario", "MatEConf", "bi", bi, 0);
+				++diario;
+
+				ta.actualizarColuna_Qualquer_Linha(BD, "Func_Diario", "MatEConf", diario, "", "bi", bi);
+				
+			 * 
+			 * 
+			 * 
+			 */
 			model.addAttribute("resultado", "Impressão Feita");
 		} else {
 
 			model.addAttribute("resultado", "Este Aluno Não Existe !");
 		}
 
-		return "redirect:Secretaria-Imprimir-Boletin";
+		return "redirect:Secretaria-Imprimir-Boletin";   
 	}
 
-	@PostMapping("/Secretaria-Provas-Marcadas")
-	public String secretariaMarcarProvao() {
-
-		return "WebGnius/secretaria/provasMarcadas";
-	}
-
-	@PostMapping("/Secretaria-Matricula")
+	
+	
+	@Override
+	@Async
 	public String secretariaMatricularAluno(HttpServletResponse response,Aluno aluno, Model model) {
 
+		try {
+		    Thread.sleep(5000);
+		
 		Salvar_SQL s = new Salvar_SQL();
-		Turma dadosAluno = s.inserirAluno(this.BD, aluno);
+		Turma dadosAluno = s.inserirAluno(BD, aluno);
 
 		String turma2 = dadosAluno.getTurma();
 		String turma3 = turma2;
@@ -8618,14 +8912,11 @@ public class TechShineController {
 			Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
 			
 			//Actualizando a tabela de trablhos diarios na propina do Tesoureiro
-			int diario= p.pesquisarUmConteudo_Numa_Linha_Int(BD, "Func_Diario", "MatEConf", "bi", this.bi, 0);
+			int diario= p.pesquisarUmConteudo_Numa_Linha_Int(BD, "Func_Diario", "MatEConf", "bi", bi, 0);
 			++diario;
-			ta.actualizarColuna_Qualquer_Linha(BD, "Func_Diario", "MatEConf", diario, "", "bi", this.bi);
+			ta.actualizarColuna_Qualquer_Linha(BD, "Func_Diario", "MatEConf", diario, "", "bi", bi);
 		    
-			Relatorio r = new Relatorio();
-			ImprimirRelatorio ir = new ImprimirRelatorio();
 			
-			String mes = s.mesActual(this.BD);
 			
 			this.cursoAluno= curso;
 			this.turmaAluno = turma3;
@@ -8647,23 +8938,39 @@ public class TechShineController {
 
 			this.pagina = "redirect:Secretaria-Matricula";
 		}
+		
+		
+		}catch(Exception e) {
+			
+			e.printStackTrace();
+		}
+		
 		return this.pagina;
 	}
 
-	@PostMapping("/Secretaria-Lista")
-	public String secretariaConfirmacao(@Validated Agenda agenda, Model model, BindingResult erros) {
-
-		if (erros.hasErrors()) {
-
-			return "redirect:Secretaria-Lista";
-		}
-
-		return "redirect:Secretaria-Lista";
-	}
 
 	@PostMapping({ "/Admin-Minha-Seguranca" })
 	public String seguranca(@Validated RecuperarSenha recuperar, Model model) {
 
+		
+		
+		synchronized(this) {
+		
+		Pesquisar_SQL p = new Pesquisar_SQL();
+		Usuario usuario = p.retornaUsuario(BD,recuperar.getIdFunc(),this.configurarEscola);
+		
+		
+		boolean existeuUsuario = usuario.isExisteUsuario();
+		
+		if(existeuUsuario){
+			
+			quem_E_O_func = usuario.getIntegrante();
+			id = usuario.getId();
+			
+			
+		}
+		
+		
 		Salvar_SQL s = new Salvar_SQL();
 		String pagina = null;
 
@@ -8674,10 +8981,10 @@ public class TechShineController {
 
 		} else {
 
-			if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-				s.sistema_Mudar_A_Senha(this.BD, senha, this.BD, 0, this.bi, true);
+			if (quem_E_O_func.equalsIgnoreCase("pca")) {
+				s.sistema_Mudar_A_Senha(BD, senha, BD, 0, bi, true);
 			} else {
-				s.sistema_Mudar_A_Senha(this.BD, senha, this.quem_E_O_func, this.id, "", false);
+				s.sistema_Mudar_A_Senha(BD, senha, quem_E_O_func, id, "", false);
 			}
 
 		}
@@ -8686,10 +8993,10 @@ public class TechShineController {
 
 		} else {
 
-			if (this.quem_E_O_func.equalsIgnoreCase("pca")) {
-				s.sistema_Mudar_A_Senha(this.BD, palavra, this.BD, 0, this.bi, true);
+			if (quem_E_O_func.equalsIgnoreCase("pca")) {
+				s.sistema_Mudar_A_Senha(BD, palavra, BD, 0, bi, true);
 			} else {
-				s.sistema_Mudar_A_Senha(this.BD, palavra, this.quem_E_O_func, this.id, "", false);
+				s.sistema_Mudar_A_Senha(BD, palavra, quem_E_O_func, id, "", false);
 			}
 		}
 
@@ -8712,56 +9019,150 @@ public class TechShineController {
 
 		// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
 		return this.pagina;
+		
+		}
 	}
 
 	@PostMapping({ "/Tesouraria-Minha-Seguranca" })
 	public String seguranca7(@Validated RecuperarSenha recuperar, Model model) {
 
-		String pagina = null;
-
-		Salvar_SQL s = new Salvar_SQL();
-
-		String senha = recuperar.getSenha();
-		String palavra = recuperar.getPalavra();
-
-		if ((senha.equalsIgnoreCase("")) || (senha == null)) {
-
-		} else {
-
-			s.sistema_Mudar_A_Senha(this.BD, senha, this.quem_E_O_func, this.id, "", false);
-
+		
+		synchronized(this) {
+			
+		
+				
+				Pesquisar_SQL p = new Pesquisar_SQL();	
+				Usuario usuario = p.retornaUsuario(BD,recuperar.getIdFunc(),this.configurarEscola);
+				
+				
+				boolean existeuUsuario = usuario.isExisteUsuario();
+				
+				if(existeuUsuario){
+					
+					quem_E_O_func = usuario.getIntegrante();
+					id = usuario.getId();
+					
+					
+				}
+		
+			String pagina = null;
+	
+			Salvar_SQL s = new Salvar_SQL();
+	
+			String senha = recuperar.getSenha();
+			String palavra = recuperar.getPalavra();
+	
+			if ((senha.equalsIgnoreCase("")) || (senha == null)) {
+	
+			} else {
+	
+				s.sistema_Mudar_A_Senha(BD, senha, quem_E_O_func, id, "", false);
+	
+			}
+	
+			if ((palavra.equalsIgnoreCase("")) || (palavra == null)) {
+	
+			} else {
+	
+				s.sistema_Mudar_A_Senha(BD, palavra, quem_E_O_func, id, "", false);
+			}
+	
+			if ((senha.equalsIgnoreCase("")) || (senha == null)) {
+	
+			} else {
+	
+				model.addAttribute("resultado1", "A Senha Foi Alterada !");
+			}
+	
+			if ((palavra.equalsIgnoreCase("")) || (palavra == null)) {
+	
+			} else {
+	
+				model.addAttribute("resultado1", "A palavra Foi Configurada !");
+			}
+	
+			pagina = "redirect:Tesouraria-Minha-Seguranca";
+			this.pagina = pagina;
+	
+			// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
+			return pagina;
+		
 		}
-
-		if ((palavra.equalsIgnoreCase("")) || (palavra == null)) {
-
-		} else {
-
-			s.sistema_Mudar_A_Senha(this.BD, palavra, this.quem_E_O_func, this.id, "", false);
-		}
-
-		if ((senha.equalsIgnoreCase("")) || (senha == null)) {
-
-		} else {
-
-			model.addAttribute("resultado1", "A Senha Foi Alterada !");
-		}
-
-		if ((palavra.equalsIgnoreCase("")) || (palavra == null)) {
-
-		} else {
-
-			model.addAttribute("resultado1", "A palavra Foi Configurada !");
-		}
-
-		pagina = "redirect:Tesouraria-Minha-Seguranca";
-		this.pagina = pagina;
-
-		// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
-		return pagina;
 	}
 
 	@GetMapping({ "/Coord-Cursos" })
-	public String coord2(Model model) {
+	public String coord2(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		
+		this.repetir="Coord-Cursos";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -8778,13 +9179,13 @@ public class TechShineController {
 			int contador = 0;
 			int contador2 = 0;
 			int contador3 = 0;
-			ArrayList<String> cursos2 = p.pesquisarTudoEmString_Restrito(this.BD, "cursos", "nome", "bi", this.bi, 0);
+			ArrayList<String> cursos2 = p.pesquisarTudoEmString_Restrito(BD, "cursos", "nome", "bi", bi, 0);
 
 			System.out.println("Entrou Nos Cursos");
 			for (String cadaC : cursos2) {
 				++contador2;
 				System.out.println("Contador2: " + contador2);
-				ArrayList<String> profs = p.pesquisarTudoEmString_Restrito(this.BD, "disciplinas_dos_profs",
+				ArrayList<String> profs = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs",
 						"professor", "curso", cadaC, 0);
 				for (String pr : profs) {
 
@@ -8802,11 +9203,11 @@ public class TechShineController {
 
 			}
 
-			String mes = s.mesActual(this.BD);
+			String mes = s.mesActual(BD);
 			Date d = new Date();
 			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(this.BD, this.quem_E_O_func + "_financa", mes, "id", "",
-					this.id);
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+					id);
 
 			model.addAttribute("qCursos", contador2);
 			model.addAttribute("qProfs", contador3);
@@ -8844,36 +9245,155 @@ public class TechShineController {
 		String pagina = null;
 
 		this.curso2 = curso.getNome();
-		pagina = "redirect:Coord-Professores-2";
+		pagina = "redirect:Coord-Professores-2";  
 		this.pagina = pagina;
 
 		// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
 		return this.pagina;
 	}
+	
+	
 
 	@PostMapping({ "/Coord-Permissoes" })
 	public String coord4(Coordenador coord, Model model) {
 
 		String pagina = null;
 
+		Pesquisar_SQL p = new Pesquisar_SQL();
 		Salvar_SQL s = new Salvar_SQL();
 
+		
+       Usuario usuario = p.retornaUsuario(BD,aluno.getIdFunc(),this.configurarEscola);
+		
+		
+		boolean existeuUsuario = usuario.isExisteUsuario();
+		
+		if(existeuUsuario){
+			
+			bi = usuario.getBi();
+		}
+		
+		
+		
+		
 		System.out.println("Avalicao: " + coord.isAvaliacao());
 		System.out.println("Prova: " + coord.isProva());
 		System.out.println("Exame: " + coord.isExame());
 		System.out.println("Bloqueio: " + coord.isBloqueio());
 
-		s.coordenador_Permitir_Lancar_Provas(this.BD, coord, this.bi);
-		pagina = "redirect:Coord-Permissoes";
+		
+		String autorizacao = p.pesquisarUmConteudo_Numa_Linha_String(BD, "cursos",
+				  "autorizacao", "bi", bi, 0);
+		
+		if(autorizacao.equalsIgnoreCase("S")) {
+			
+			s.coordenador_Permitir_Lancar_Provas(BD, coord, bi);
+			pagina = "redirect:Coord-Permissoes";
+		}else {
+			
+			
+			
+			int contador = 0;
+			int contador2 = 0;
+			ArrayList<String> cursos = p.pesquisarTudoEmString_Restrito(BD, "cursos", "nome", "bi", bi, 0);
+
+			System.out.println("Entrou Nos Cursos");
+			for (String cadaC : cursos) {
+				++contador2;
+				System.out.println("Contador2: " + contador2);
+				ArrayList<String> profs = p.pesquisarTudoEmString_Restrito(BD, "Disciplinas_Dos_Profs",
+						"professor", "curso", cadaC, 0);
+				for (String pr : profs) {
+
+					++contador;
+					System.out.println("Contador: " + contador);
+				}
+
+			}
+
+			String mes = s.mesActual(BD);
+			Date d = new Date();
+			SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id", "",
+					id);
+
+			model.addAttribute("qCursos", contador2);
+			model.addAttribute("qProfs", contador);
+			model.addAttribute("data", sdf.format(d));
+
+			if (renda == 0) {
+				model.addAttribute("renda", "Irregular");
+			} else {
+				model.addAttribute("renda", "Regular");
+			}
+
+			model.addAttribute("nome", configurarNome);
+			model.addAttribute("escola", configurarEscola);
+
+			pagina = "TechShine/Coordenador/info1";
+		}
+		
+		
 		this.pagina = pagina;
 
 		// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
 		return this.pagina;
 	}
 
-	@PostMapping({ "/Secretaria-Minha-Seguranca", "/Coord-Minha-Seguranca", "/Aluno-Minha-Seguranca" })
-	public String seguranca2(@Validated RecuperarSenha recuperar, Model model) {
+	@Override
+    @Async
+	public String seguranca2(@Validated RecuperarSenha recuperar) {
 
+		
+		
+		
+		try {
+			
+			Thread.sleep(5000);
+			
+			Pesquisar_SQL p = new Pesquisar_SQL();
+			
+			if((recuperar.getIdFunc().startsWith("P"))||
+					(recuperar.getIdFunc().startsWith("T"))||
+					(recuperar.getIdFunc().startsWith("C"))||
+					(recuperar.getIdFunc().startsWith("S"))||
+					(recuperar.getIdFunc().startsWith("DG"))||
+					(recuperar.getIdFunc().startsWith("DA"))||
+					(recuperar.getIdFunc().startsWith("DP"))||
+					(recuperar.getIdFunc().startsWith("PCA"))||
+					(recuperar.getIdFunc().startsWith("pca"))) {
+				
+				
+				
+				Usuario usuario = p.retornaUsuario(BD,recuperar.getIdFunc(),configurarEscola);
+				
+				
+				boolean existeuUsuario = usuario.isExisteUsuario();
+				
+				if(existeuUsuario){
+					
+					quem_E_O_func = usuario.getIntegrante();
+					id = usuario.getId();
+					
+					
+				}
+			}else {
+				
+                Usuario usuario = p.retornaUsuario2(BD,aluno.getIdFunc());
+				
+				
+				boolean existeuUsuario = usuario.isExisteUsuario();
+				
+				if(existeuUsuario){
+					
+					quem_E_O_func = usuario.getTurma();
+					id = usuario.getId();
+					
+					
+				}
+			}
+		
+		
 		Salvar_SQL s = new Salvar_SQL();
 		String pagina = null;
 
@@ -8884,7 +9404,7 @@ public class TechShineController {
 
 		} else {
 
-			s.sistema_Mudar_A_Senha(this.BD, senha, this.quem_E_O_func, this.id, "", false);
+			s.sistema_Mudar_A_Senha(BD, senha, quem_E_O_func, id, "", false);
 
 		}
 
@@ -8892,27 +9412,15 @@ public class TechShineController {
 
 		} else {
 
-			s.sistema_Mudar_A_Senha(this.BD, palavra, this.quem_E_O_func, this.id, "", false);
+			s.sistema_Mudar_A_Senha(BD, palavra, quem_E_O_func, id, "", false);
 		}
 
-		if ((senha.equalsIgnoreCase("")) || (senha == null)) {
+		
 
-		} else {
-
-			model.addAttribute("resultado1", "A Senha Foi Alterada !");
-		}
-
-		if ((palavra.equalsIgnoreCase("")) || (palavra == null)) {
-
-		} else {
-
-			model.addAttribute("resultado1", "A palavra Foi Configurada !");
-		}
-
-		if (this.quem_E_O_func.equalsIgnoreCase("secretaria")) {
+		if (quem_E_O_func.equalsIgnoreCase("secretaria")) {
 
 			pagina = "redirect:Secretaria-Minha-Seguranca";
-		} else if (this.quem_E_O_func.equalsIgnoreCase("coord")) {
+		} else if (quem_E_O_func.equalsIgnoreCase("coord")) {
 			pagina = "redirect:Coord-Minha-Seguranca";
 		} else {
 			pagina = "redirect:Aluno-Minha-Seguranca";
@@ -8921,6 +9429,11 @@ public class TechShineController {
 		this.pagina = pagina;
 
 		// nomeDaPagina= entrarNoSistema.quemEstaAFazerLogin(senha, model);
+		
+		
+		}catch (Exception e) {
+			// TODO: handle exception
+		}
 		return this.pagina;
 	}
 
@@ -8928,7 +9441,74 @@ public class TechShineController {
 	// Métodos Da WebGenius
 
 	@GetMapping("/WebGenius")
-	public String webGenius(Model model) {
+	public String webGenius(Model model,HttpServletRequest request) {
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		this.repetir="WebGenius";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -8952,7 +9532,9 @@ public class TechShineController {
 	}
 
 	@GetMapping("/WebGenius-Cadastrar-Escola")
-	public String webGenius_Escola(Model model) {
+	public String webGenius_Escola(Model model,HttpServletRequest request) {
+		
+		this.repetir="WebGenius-Cadastrar-Escola";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -8976,7 +9558,74 @@ public class TechShineController {
 	}
 
 	@PostMapping("/WebGenius-Listar-Escola")
-	public String Lista_De_Escolas(Model model, Escola escola) {
+	public String Lista_De_Escolas(Model model, Escola escola,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -9007,7 +9656,76 @@ public class TechShineController {
 	}
 
 	@GetMapping("/WebGenius-Listar-Escola")
-	public String webGenius_Listar_Escolas(Model model) {
+	public String webGenius_Listar_Escolas(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		this.repetir="WebGenius-Listar-Escola";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -9032,9 +9750,78 @@ public class TechShineController {
 		return this.pagina;
 
 	}
+	
+	@GetMapping({"/WebGenius-Minha-Seguranca","/webgenius/WebGenius-Minha-Seguranca"})
+	public String webGenius_Minha_Seguranca(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
 
-	@GetMapping("/WebGenius-Minha-Seguranca")
-	public String webGenius_Minha_Seguranca(Model model) {
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		this.repetir="WebGenius-Minha-Seguranca";
 
 		String nomeDaPagina = null;
 		estado = -5;
@@ -9057,32 +9844,77 @@ public class TechShineController {
 
 	}
 
-	@GetMapping("/WebGenius-Acesso")
-	public String webGenius_Acesso(Model model) {
-
-		String nomeDaPagina = null;
-		estado = -5;
-
-		if (entrarNoSistema.podeAbrirAPagina(senha)) {
-
-			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
-			nomeDaPagina = "WebGnius/WG/acesso";
-			this.pagina = nomeDaPagina;
-
-			model.addAttribute("pca", configurarNome);
-			// }
-
-		} else {
-			estado = 0;
-			this.pagina = "redirect:login";
-		}
-
-		return this.pagina;
-
-	}
+	
 
 	@PostMapping("/WebGenius-Acesso")
-	public String webGenius_Escolas(Escola escola, Model model) {
+	public String webGenius_Escolas(Escola escola, Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
 
 		String nomeDaPagina = null;
 		String senha;
@@ -9099,12 +9931,14 @@ public class TechShineController {
 	}
 
 	@PostMapping("/imprimirMatricula-2")
-	public void impressão(HttpServletResponse response, Model model) {
-
+	public String impressão(HttpServletResponse response, Model model) {
 		
+		String nomeDaPagina = null;
+
+		/*
 		Pesquisar_SQL p = new Pesquisar_SQL();
 		Salvar_SQL s = new Salvar_SQL();
-		String nomeDaPagina = null;
+		
 		String senha;
 
 		// this.aluno;
@@ -9122,13 +9956,13 @@ public class TechShineController {
 		}
 		
 		int valorPago = precoDoCurso;
-		String mes = s.mesActual(this.BD);
+		String mes = s.mesActual(BD);
 		ImprimirRelatorio ir = new ImprimirRelatorio();
 		ir.relatorioOutrosServicos(BD, response, this.configurarEscola, mes, this.cursoAluno, "matricula", valorPago, this.configurarNome,
 				"matricula",this.turnoAluno,this.nivel,this.turmaAluno,this.nomeCompleto);
 		
-
-		if (this.quem_E_O_func.equalsIgnoreCase("secretaria")) {
+        */
+		if (quem_E_O_func.equalsIgnoreCase("secretaria")) {
 
 			nomeDaPagina = "redirect:Secretaria-Matricula";
 		} else {
@@ -9137,7 +9971,7 @@ public class TechShineController {
 		}
 
 		this.pagina = nomeDaPagina;
-		//return this.pagina;
+		return this.pagina;
 
 	}
 	
@@ -9149,7 +9983,7 @@ public class TechShineController {
 
 		// this.aluno;
 
-		if (this.quem_E_O_func.equalsIgnoreCase("secretaria")) {
+		if (quem_E_O_func.equalsIgnoreCase("secretaria")) {
 
 			nomeDaPagina = "redirect:Secretaria-Matricula";
 		} else {
@@ -9167,13 +10001,14 @@ public class TechShineController {
 
 		return "redirect:WebGenius-Minha-Seguranca";
 	}
+	
 
 	@GetMapping("/{id}")
 	public String removerCurso(Model model, @PathVariable("id") int id) {
 
 		boolean eliminado;
 		EliminarLinha_SQL e = new EliminarLinha_SQL();
-		eliminado = e.EliminarLinha(this.BD, "cursos", "id", id, "", true);
+		eliminado = e.EliminarLinha(BD, "cursos", "id", id, "", true);
 
 		if (eliminado) {
 
@@ -9192,7 +10027,7 @@ public class TechShineController {
 
 		// Abaixo tem os objectos a ser utilizados para a impressão
 		// this.aluno
-		// this.BD
+		// BD
 
 		this.pagina = "redirect:Admin-Alunos";
 
@@ -9202,12 +10037,13 @@ public class TechShineController {
 
 	@GetMapping("/imprimirFuncionario")
 	public String imprimirFuncionario() {
+		
 
 		// Aqui vai a ideia para Imprimir a matricula
 
 		// Abaixo tem os objectos a ser utilizados para a impressão
 		// this.aluno
-		// this.BD
+		// BD
 
 		this.pagina = "redirect:Cadastrar-Sistema-5b";
 
@@ -9216,11 +10052,29 @@ public class TechShineController {
 	}
 
 	public void inserirArquivoNoServido(HttpServletRequest request, HttpServletResponse response, MultipartFile arquivo,
-			boolean e_Um_Logotipo, String descricao, String sigla,String turma) throws IOException {
+			boolean e_Um_Logotipo, String descricao, String sigla,String turma,String idFunc) throws IOException {
 
+		
+		
 		Tabela_Actualizar_SQL ta = new Tabela_Actualizar_SQL();
 		Pesquisar_SQL p = new Pesquisar_SQL();
 		Salvar_SQL s = new Salvar_SQL();
+		
+		
+		
+		Usuario usuario = p.retornaUsuario(BD,aluno.getIdFunc(),this.configurarEscola);
+		
+		
+		boolean existeuUsuario = usuario.isExisteUsuario();
+		
+		if(existeuUsuario){
+			
+			bi = usuario.getBi();
+		}
+		
+		
+		
+		
 
 		this.disciplina = ta.tirarCaracteres(this.disciplina);
 
@@ -9231,7 +10085,7 @@ public class TechShineController {
 		try {
 			String caminho;
 			if (e_Um_Logotipo) {
-				caminho = request.getServletContext().getRealPath("/" + this.BD + " logotipo") + "/";
+				caminho = request.getServletContext().getRealPath("/" + BD + " logotipo") + "/";
 			} else {
 				caminho = request.getServletContext().getRealPath("/" + configurarEscola + " "+turma+" "+ this.disciplina) + "/";
 
@@ -9267,10 +10121,10 @@ public class TechShineController {
 
 			if (e_Um_Logotipo) {
 
-				ta.actualizarColuna_QualquerLinha_String(this.BD, "pca_" + this.BD, "logotipo", caminho, 1);
+				ta.actualizarColuna_QualquerLinha_String(BD, "pca_" + BD, "logotipo", caminho, 1);
 			} else {
 
-				s.inserir_materiasOnline(this.BD, caminho, arquivo.getOriginalFilename(), descricao, this.bi, sigla);
+				s.inserir_materiasOnline(BD, caminho, arquivo.getOriginalFilename(), descricao, bi, sigla);
 			}
 
 		} catch (IOException e) {
@@ -9307,29 +10161,2850 @@ public class TechShineController {
 		return mv;
 	}
 
+	
+	
+	
+	@GetMapping({"/Cadastrar-Sistema-9","/webgenius/Cadastrar-Sistema-9"})
+	public String cadastrar_9(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		Pesquisar_SQL p = new Pesquisar_SQL();
+		Salvar_SQL s = new Salvar_SQL();
+		
+		String nomeDaPagina;
+		
+		ArrayList<Curso> cursos = p.Listar_Cursos(BD);
+		ArrayList<String> tCursos = new ArrayList<>();
+
+		for (Curso c : cursos) {
+
+			tCursos.add(c.getNome());
+		}
+		
+
+
+		
+
+		this.repetir="Cadastrar-Sistema-9";
+
+
+
+		estado = -5;
+		if (entrarNoSistema.podeAbrirAPagina(senha)) {
+
+			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+
+			estado2 = 0;
+			ArrayList<Integer> financaCadastrada = p.pesquisarTudoEmInt(BD, "adminfinanca", "finCadastrada");
+			if (financaCadastrada.size() > 0) {
+				estado2 = p.pesquisarTudoEmInt(BD, "adminfinanca", "finCadastrada").get(0);
+			}
+
+			if (estado2 == 0) {
+
+				
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+				int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin",
+						bi, 0);
+
+				int despeza = 0;
+				ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
+
+				if (despezas.size() > 0) {
+
+				}
+
+				model.addAttribute("qalunos", qalunos);
+				model.addAttribute("qfunc", qfunc);
+				model.addAttribute("qCurso", QCurso);
+				model.addAttribute("renda", renda);
+				model.addAttribute("despeza", despeza);
+
+				model.addAttribute("cursos", tCursos);
+				model.addAttribute("resultado", "Curso Inserido Com Sucesso !");
+				model.addAttribute("nome", configurarNome);
+				model.addAttribute("escola", configurarEscola);
+
+				nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase9";
+			} else {
+
+				
+				int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+				int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+				int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+
+				int renda;
+				int despeza = 0;
+				String mes = s.mesActual(BD);
+
+				if (quem_E_O_func.equalsIgnoreCase("pca")) {
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin",
+							bi, 0);
+
+					ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
+
+					if (despezas.size() > 0) {
+
+						despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
+					}
+					nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase10";
+
+				} else {
+
+					renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes,
+							"id", "", id);
+
+					if (renda == 0) {
+						model.addAttribute("renda", "Irregular");
+					} else {
+						model.addAttribute("renda", "Regular");
+					}
+
+					nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase11";
+				}
+
+				model.addAttribute("qalunos", qalunos);
+				model.addAttribute("qfunc", qfunc);
+				model.addAttribute("qCurso", QCurso);
+				model.addAttribute("renda", renda);
+				model.addAttribute("despeza", despeza);
+
+				model.addAttribute("cursos", tCursos);
+				model.addAttribute("resultado", "Curso Inserido Com Sucesso !");
+				model.addAttribute("nome", configurarNome);
+				model.addAttribute("escola", configurarEscola);
+
+				// nomeDaPagina="WebGnius/cadastrar_Empresa/tudo_Cadastrado";
+
+			}
+
+			this.pagina = nomeDaPagina;
+			// }
+
+		} else {
+
+			estado = 0;
+			nomeDaPagina = "redirect:login";
+			this.pagina = nomeDaPagina;
+		}
+
+	
+		
+		return this.pagina;
+	}
+	
+	
+	
+	
+	@GetMapping({"/Cadastrar-Sistema-9b","/webgenius/Cadastrar-Sistema-9b"})
+	public String cadastrar_9b(Model model,HttpServletRequest request) {
+		
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		Pesquisar_SQL p = new Pesquisar_SQL();
+		this.repetir="Cadastrar-Sistema-9b";
+		
+		String nomeDaPagina;
+		
+		ArrayList<Curso> cursos = p.Listar_Cursos(BD);
+		ArrayList<String> tCursos = new ArrayList<>();
+
+		for (Curso c : cursos) {
+
+			tCursos.add(c.getNome());
+		}
+		
+		ArrayList<String> niveis = p.pesquisarTudoEmString(BD, "infoescola", "niveis");
+
+		estado = -5;
+		if (entrarNoSistema.podeAbrirAPagina(senha)) {
+
+			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+
+			
+			int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+			int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+			int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
+					0);
+
+			model.addAttribute("qalunos", qalunos);
+			model.addAttribute("qfunc", qfunc);
+			model.addAttribute("qCurso", QCurso);
+			model.addAttribute("renda", renda);
+
+			ArrayList<String> tCursos2= new ArrayList<>();
+
+			
+			if(cursos!=null) {
+				for(int i=0;i<tCursos.size();i++) {
+
+					tCursos2.add(tCursos.get(i));
+				}
+				
+			}
+			
+
+			model.addAttribute("cursos", tCursos2);
+			model.addAttribute("resultado", "Curso Inserido Com Sucesso !");
+			model.addAttribute("nome", configurarNome);
+			model.addAttribute("escola", configurarEscola);
+			nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase9b";
+			this.pagina = nomeDaPagina;
+			// }
+
+		} else {
+
+			estado = 0;
+			nomeDaPagina = "redirect:login";
+			this.pagina = nomeDaPagina;
+		}
+		
+		return this.pagina;
+	}
+	
+	
+	
+	@GetMapping({"/Cadastrar-Sistema-9c","/webgenius/Cadastrar-Sistema-9c"})
+	public String cadastrar_9c(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		Pesquisar_SQL p = new Pesquisar_SQL();
+		this.repetir="Cadastrar-Sistema-9b";
+		
+		String nomeDaPagina;
+		
+		ArrayList<Curso> cursos = p.Listar_Cursos(BD);
+		ArrayList<String> tCursos = new ArrayList<>();
+
+		for (Curso c : cursos) {
+
+			tCursos.add(c.getNome());
+		}
+		
+
+		this.repetir="Cadastrar-Sistema-9c";
+
+		estado = -5;
+		if (entrarNoSistema.podeAbrirAPagina(senha)) {
+
+			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+
+			
+
+			int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+			int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+			int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
+					0);
+
+			model.addAttribute("qalunos", qalunos);
+			model.addAttribute("qfunc", qfunc);
+			model.addAttribute("qCurso", QCurso);
+			model.addAttribute("renda", renda);
+			
+			ArrayList<String> tCursos2= new ArrayList<>();
+			
+			if(cursos!=null) {
+				
+				for(int i=0;i<tCursos.size();i++) {
+					
+					tCursos2.add(tCursos.get(i));
+				}
+			}
+			
+
+			model.addAttribute("cursos", tCursos2);
+			model.addAttribute("resultado", "Curso Inserido Com Sucesso !");
+			model.addAttribute("nome", configurarNome);
+			model.addAttribute("escola", configurarEscola);
+
+			nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase9c";
+			this.pagina = nomeDaPagina;
+			// }
+
+		} else {
+
+			estado = 0;
+			nomeDaPagina = "redirect:login";
+			this.pagina = nomeDaPagina;
+		}
+		
+		return this.pagina;
+	}
+	
+	
+	@GetMapping({"/Cadastrar-Sistema-9d","/webgenius/Cadastrar-Sistema-9d"})
+	public String cadastrar_9d(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		Pesquisar_SQL p = new Pesquisar_SQL();
+		this.repetir="Cadastrar-Sistema-9d";
+		
+		String nomeDaPagina;
+		
+		ArrayList<Curso> cursos = p.Listar_Cursos(BD);
+		ArrayList<String> tCursos = new ArrayList<>();
+
+		for (Curso c : cursos) {
+
+			tCursos.add(c.getNome());
+		}
+		
+
+
+		
+		this.repetir="Cadastrar-Sistema-9d";
+
+		estado = -5;
+		if (entrarNoSistema.podeAbrirAPagina(senha)) {
+
+			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+
+			
+			int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+			int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+			int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
+					0);
+
+			ArrayList<String> docs = p.pesquisarTudoEmString(BD, "infoescola", "Documentos");
+			model.addAttribute("qalunos", qalunos);
+			model.addAttribute("qfunc", qfunc);
+			model.addAttribute("qCurso", QCurso);
+			model.addAttribute("renda", renda);
+
+			model.addAttribute("documentos", docs);
+
+			model.addAttribute("resultado", "Curso Inserido Com Sucesso !");
+			model.addAttribute("nome", configurarNome);
+			model.addAttribute("escola", configurarEscola);
+			nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase9d";
+			this.pagina = nomeDaPagina;
+			// }
+
+		} else {
+
+			estado = 0;
+			nomeDaPagina = "redirect:login";
+			this.pagina = nomeDaPagina;
+		}
+
+	
+		
+		return this.pagina;
+	}
+	
+	
+	@GetMapping({"/Cadastrar-Sistema-9e","/webgenius/Cadastrar-Sistema-9e"})
+	public String cadastrar_9e(Model model,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		Pesquisar_SQL p = new Pesquisar_SQL();
+		this.repetir="Cadastrar-Sistema-9e";
+		
+		String nomeDaPagina;
+		
+		ArrayList<Curso> cursos = p.Listar_Cursos(BD);
+		ArrayList<String> tCursos = new ArrayList<>();
+
+		for (Curso c : cursos) {
+
+			tCursos.add(c.getNome());
+		}
+		
+
+
+		
+
+
+		
+		this.repetir="Cadastrar-Sistema-9e";
+
+		estado = -5;
+		if (entrarNoSistema.podeAbrirAPagina(senha)) {
+
+			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+
+			
+
+			int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+			int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+			int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
+					0);
+
+			ArrayList<String> materiais = p.pesquisarTudoEmString(BD, "infoescola", "Materias");
+
+			model.addAttribute("qalunos", qalunos);
+			model.addAttribute("qfunc", qfunc);
+			model.addAttribute("qCurso", QCurso);
+			model.addAttribute("renda", renda);
+			model.addAttribute("materiais", materiais);
+
+			model.addAttribute("cursos", tCursos);
+			model.addAttribute("resultado", "Curso Inserido Com Sucesso !");
+			model.addAttribute("nome", configurarNome);
+			model.addAttribute("escola", configurarEscola);
+
+			nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase9e";
+			this.pagina = nomeDaPagina;
+			// }
+
+		} else {
+
+			estado = 0;
+			nomeDaPagina = "redirect:login";
+			this.pagina = nomeDaPagina;
+		}
+
+	
+	
+		
+		return this.pagina;
+	}
+	
+	
+	
+	
+	@GetMapping({"/Cadastrar-Sistema-9f","/webgenius/Cadastrar-Sistema-9f"})
+	public String cadastrar_9f(Model model,HttpServletRequest request) {
+		
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		Pesquisar_SQL p = new Pesquisar_SQL();
+		
+		String nomeDaPagina;
+		
+		ArrayList<Curso> cursos = p.Listar_Cursos(BD);
+		ArrayList<String> tCursos = new ArrayList<>();
+
+		for (Curso c : cursos) {
+
+			tCursos.add(c.getNome());
+		}
+		
+
+
+		
+
+		this.repetir="Cadastrar-Sistema-9f";
+
+		estado = -5;
+		if (entrarNoSistema.podeAbrirAPagina(senha)) {
+
+			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+
+			int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+			int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+			int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
+					0);
+
+			ArrayList<String> faltas = new ArrayList<>();
+			faltas.add("Vermelha");
+			faltas.add("Azul");
+
+			model.addAttribute("qalunos", qalunos);
+			model.addAttribute("qfunc", qfunc);
+			model.addAttribute("qCurso", QCurso);
+			model.addAttribute("renda", renda);
+			model.addAttribute("faltas", faltas);
+
+			model.addAttribute("cursos", tCursos);
+			model.addAttribute("resultado", "Curso Inserido Com Sucesso !");
+			model.addAttribute("nome", configurarNome);
+			model.addAttribute("escola", configurarEscola);
+
+			nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase9f";
+			this.pagina = nomeDaPagina;
+			// }
+
+		} else {
+
+			estado = 0;
+			nomeDaPagina = "redirect:login";
+			this.pagina = nomeDaPagina;
+		}
+
+	
+		
+		return this.pagina;
+	}
+	
+	
+	@GetMapping({"/Cadastrar-Sistema-10","/webgenius/Cadastrar-Sistema-10"})
+	public String cadastrar_10(Model model,HttpServletRequest request) {
+		
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		
+		
+		Pesquisar_SQL p = new Pesquisar_SQL();
+		
+		String nomeDaPagina;
+		
+		ArrayList<Curso> cursos = p.Listar_Cursos(BD);
+		ArrayList<String> tCursos = new ArrayList<>();
+		Salvar_SQL s = new Salvar_SQL();
+
+		for (Curso c : cursos) {
+
+			tCursos.add(c.getNome());
+		}
+		
+
+		
+		this.repetir="Cadastrar-Sistema-10";
+
+		estado = -5;
+		if (entrarNoSistema.podeAbrirAPagina(senha)) {
+
+			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+
+
+			int qalunos = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qalunos", "id", "", 1);
+			int qfunc = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "qfunc", "id", "", 1);
+			int QCurso = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "infoescola", "QCurso", "id", "", 1);
+
+			int despeza = 0;
+			ArrayList<Integer> despezas = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza");
+
+			if (despezas.size() > 0) {
+
+				despeza = p.pesquisarTudoEmInt(BD, "adminfinanca", "despeza").get(0);
+			}
+
+			int renda = 0;
+			String mes = s.mesActual(BD);
+			if (quem_E_O_func.equalsIgnoreCase("pca")) {
+
+				renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "adminfinanca", "renda", "bi_admin", bi,
+						0);
+				nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase10";
+			} else {
+
+				renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+						"", id);
+
+				if (renda == 0) {
+					model.addAttribute("renda", "Irregular");
+				} else {
+					model.addAttribute("renda", "Regular");
+				}
+
+				nomeDaPagina = "WebGnius/cadastrar_Empresa/sistema_fase11";
+
+			}
+
+			model.addAttribute("qalunos", qalunos);
+			model.addAttribute("qfunc", qfunc);
+			model.addAttribute("qCurso", QCurso);
+			model.addAttribute("renda", renda);
+			model.addAttribute("despeza", despeza);
+			model.addAttribute("financa", quem_E_O_func + " | Finança");
+
+			model.addAttribute("cursos", tCursos);
+			model.addAttribute("resultado", "Curso Inserido Com Sucesso !");
+			model.addAttribute("nome", configurarNome);
+			model.addAttribute("escola", configurarEscola);
+
+			this.pagina = nomeDaPagina;
+
+			// }
+
+		} else {
+
+			estado = 0;
+			nomeDaPagina = "redirect:login";
+			this.pagina = nomeDaPagina;
+		}
+
+	
+	
+		
+		return this.pagina;
+	}
+	
+	
+	
 	// =============================================
 
-	@GetMapping("/terminar-sessao")
-	public String webGenius_TerminarSessão() {
+	
 
-		senha = " ";
-		request = " ";
-		this.estado = 0;
+	
+	
+	
+	
+	
+	
+	
 
-		pca = null;
-		aluno = null;
-		admin = null;
-		prof = null;
-		coord = null;
-		secret = null;
-		tesou = null;
-		configurarNome = null;
-		configurarEscola = null;
-		estado2 = 0;
+	
+	
 
-		return "TechShine/login";
+
+	
+	@GetMapping({"/Tesouraria-Pagar-Propina","/webgenius/Tesouraria-Pagar-Propina"})
+	public String Tesouraria_Pagar_Propina(Model model, HttpServletResponse response) {
+		
+		
+		SessaoActual sa = new SessaoActual();
+		HttpServletRequest request = sa.retornarRequisicao();
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		String nomeDaPagina;
+		
+		
+		
+
+		
+		this.repetir="Tesouraria-Pagar-Propina";
+
+		if (entrarNoSistema.podeAbrirAPagina(senha)) {
+
+			Pesquisar_SQL p = new Pesquisar_SQL();
+			Salvar_SQL s = new Salvar_SQL();
+
+			String mes = s.mesActual(BD);
+
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+					"", id);
+			
+			
+			
+			
+			
+			
+
+			ArrayList<Integer> propinas = p.pesquisarTudoEmInt(BD, "Func_Diario", "Prop");
+			ArrayList<Integer> matri = p.pesquisarTudoEmInt(BD, "Func_Diario", "MatEConf");
+			ArrayList<Integer> servicos = p.pesquisarTudoEmInt(BD, "Func_Diario", "servicos");
+			
+			Operacoes op = new Operacoes();
+			
+			
+			int p2 = op.operacoesAdicionais(propinas);
+			int mc = op.operacoesAdicionais(matri);
+			int os = op.operacoesAdicionais(servicos);
+
+			if (renda == 0) {
+				model.addAttribute("renda", "Irregular");
+			} else {
+				model.addAttribute("renda", "Regular");
+			}
+
+			ArrayList<Curso> cursos = p.Listar_Cursos(BD);
+			ArrayList<String> tCursos = new ArrayList<>();
+
+			for (Curso c : cursos) {
+
+				tCursos.add(c.getNome());
+			}
+			ArrayList<String> niveis = p.pesquisarTudoEmString(BD, "infoescola", "niveis");
+
+			
+			ArrayList<String> turmasManha = p.pesquisarTudoEmString(BD, "Controle_Turmas", "Manha");
+			ArrayList<String> turmasTarde = p.pesquisarTudoEmString(BD, "Controle_Turmas", "Tarde");
+			ArrayList<String> turmasNoite = p.pesquisarTudoEmString(BD, "Controle_Turmas", "Noite");
+
+			ArrayList<ArrayList<String>> todasTurmas = new ArrayList<>();
+
+			todasTurmas.add(turmasManha);
+			todasTurmas.add(turmasTarde);
+			todasTurmas.add(turmasNoite);
+
+			ArrayList<String> alunosManha = new ArrayList<>();
+			ArrayList<String> alunosTarde = new ArrayList<>();
+			ArrayList<String> alunosNoite = new ArrayList<>();
+			ArrayList<Integer> todos_Processos = new ArrayList<>();
+
+			int contador = 0;
+			for (ArrayList<String> cadaTurno : todasTurmas) {
+
+				++contador;
+				for (String turma : cadaTurno) {
+
+					ArrayList<String> alunos = p.pesquisarTudoEmString(BD, turma, "Alunos");
+					ArrayList<Integer> NProc = p.pesquisarTudoEmInt(BD, turma, "NProc");
+					
+					for (Integer nproc : NProc) {
+						
+						
+						todos_Processos.add(nproc);
+					}
+					
+
+					if (contador == 1) {
+						System.out.println("Manha: ");
+						for (String al : alunos) {
+
+							System.out.println("Aluno: " + al);
+							alunosManha.add(al);
+						}
+					} else if (contador == 2) {
+						System.out.println("Tarde: ");
+						for (String al : alunos) {
+
+							System.out.println("Aluno: " + al);
+							alunosTarde.add(al);
+						}
+					} else if (contador == 3) {
+
+						System.out.println("Noite: ");
+						for (String al : alunos) {
+
+							System.out.println("Aluno: " + al);
+							alunosNoite.add(al);
+						}
+					}
+				}
+
+			}
+			
+			
+			
+			
+			model.addAttribute("processos", todos_Processos);
+			model.addAttribute("manha", alunosManha);
+			model.addAttribute("tarde", alunosTarde);
+			model.addAttribute("noite", alunosNoite);
+
+			model.addAttribute("p", p2);
+			model.addAttribute("cursos", tCursos);
+			model.addAttribute("niveis", niveis);
+			model.addAttribute("mc", mc);
+			model.addAttribute("os", os);
+			model.addAttribute("nome", configurarNome);
+			model.addAttribute("escola", configurarEscola);
+
+			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+			nomeDaPagina = "WebGnius/tesouraria/propina";
+
+			this.pagina = nomeDaPagina;
+			// }
+
+		} else {
+			estado = 0;
+			nomeDaPagina = "redirect:login";
+			this.pagina = nomeDaPagina;
+		}
+
+	
+	
+	
+		
+		return this.pagina;
+	}
+	
+	
+	
+	
+	
+	
+	@GetMapping({"/Tesouraria-Pagar-Matricula","/webgenius/Tesouraria-Pagar-Matricula"})
+	public String tesouraria_Pagar_Matricula(Model model,HttpServletResponse response) {
+		
+		
+		SessaoActual sa = new SessaoActual();
+		HttpServletRequest request = sa.retornarRequisicao();
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		String nomeDaPagina;
+		
+		
+		
+
+		
+
+		
+		this.repetir="Tesouraria-Pagar-Matricula";
+
+		if (entrarNoSistema.podeAbrirAPagina(senha)) {
+
+			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+
+			Pesquisar_SQL p = new Pesquisar_SQL();
+			Salvar_SQL s = new Salvar_SQL();
+
+			String mes = s.mesActual(BD);
+
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+					"", id);
+
+
+			ArrayList<Integer> propinas = p.pesquisarTudoEmInt(BD, "Func_Diario", "Prop");
+			ArrayList<Integer> matri = p.pesquisarTudoEmInt(BD, "Func_Diario", "MatEConf");
+			ArrayList<Integer> servicos = p.pesquisarTudoEmInt(BD, "Func_Diario", "servicos");
+			
+			Operacoes op = new Operacoes();
+			
+			
+			int p2 = op.operacoesAdicionais(propinas);
+			int mc = op.operacoesAdicionais(matri);
+			int os = op.operacoesAdicionais(servicos);
+			
+			
+			if (renda == 0) {
+				model.addAttribute("renda", "Irregular");
+			} else {
+				model.addAttribute("renda", "Regular");
+			}
+
+			ArrayList<String> docs = p.pesquisarTudoEmString(BD, "Escola_Financa", "Matricula");
+			ArrayList<Integer> preco = p.pesquisarTudoEmInt(BD, "Escola_Financa", "precoMatricula");
+
+			ArrayList<String> tCursos = new ArrayList<>();
+
+			String conteudo = "";
+			int preco2 = 0;
+			for (int i = 0; i < docs.size(); i++) {
+
+				if ((docs.size() > 0) && (i < docs.size())) {
+					conteudo = docs.get(i);
+				}
+
+				if ((preco.size() > 0) && (i < preco.size())) {
+					preco2 = preco.get(i);
+				}
+
+				tCursos.add(conteudo + " " + preco2 + ",00Kz");
+			}
+
+			model.addAttribute("matriculas", tCursos);
+			model.addAttribute("p", p2);
+			model.addAttribute("mc", mc);
+			model.addAttribute("os", os);
+			model.addAttribute("nome", configurarNome);
+			model.addAttribute("escola", configurarEscola);
+
+			nomeDaPagina = "WebGnius/tesouraria/matricula";
+
+			this.pagina = nomeDaPagina;
+			// }
+
+		} else {
+
+			estado = 0;
+			nomeDaPagina = "redirect:login";
+			this.pagina = nomeDaPagina;
+		}
+
+	
+	
+	
+		
+		return this.pagina;
+	}
+	
+	
+	
+	
+	@GetMapping({"/Tesouraria-Pagar-Documento","/webgenius/Tesouraria-Pagar-Documento"})
+	public String Tesouraria_Pagar_Documento(Model model,HttpServletRequest request,HttpServletResponse response) {
+		
+		
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		String nomeDaPagina;
+		
+		
+		
+
+		
+
+		
+
+		
+		this.repetir="Tesouraria-Pagar-Documento";
+
+		if (entrarNoSistema.podeAbrirAPagina(senha)) {
+
+			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+
+			Pesquisar_SQL p = new Pesquisar_SQL();
+			Salvar_SQL s = new Salvar_SQL();
+
+			String mes = s.mesActual(BD);
+
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+					"", id);
+
+
+			ArrayList<Integer> propinas = p.pesquisarTudoEmInt(BD, "Func_Diario", "Prop");
+			ArrayList<Integer> matri = p.pesquisarTudoEmInt(BD, "Func_Diario", "MatEConf");
+			ArrayList<Integer> servicos = p.pesquisarTudoEmInt(BD, "Func_Diario", "servicos");
+			
+			Operacoes op = new Operacoes();
+			
+			
+			int p2 = op.operacoesAdicionais(propinas);
+			int mc = op.operacoesAdicionais(matri);
+			int os = op.operacoesAdicionais(servicos);
+			
+			
+			if (renda == 0) {
+				model.addAttribute("renda", "Irregular");
+			} else {
+				model.addAttribute("renda", "Regular");
+			}
+
+			ArrayList<String> docs = p.pesquisarTudoEmString(BD, "Escola_Financa", "Docs");
+			ArrayList<Integer> preco = p.pesquisarTudoEmInt(BD, "Escola_Financa", "precoDoc");
+
+			ArrayList<String> tCursos = new ArrayList<>();
+			String conteudo = "";
+			int preco2 = 0;
+			for (int i = 0; i < docs.size(); i++) {
+
+				if ((docs.size() > 0) && (i < docs.size())) {
+					conteudo = docs.get(i);
+				}
+
+				if ((preco.size() > 0) && (i < preco.size())) {
+					preco2 = preco.get(i);
+				}
+
+				tCursos.add(conteudo + " " + preco2 + ",00Kz");
+			}
+
+			model.addAttribute("documentos", tCursos);
+
+			model.addAttribute("p", p2);
+			model.addAttribute("mc", mc);
+			model.addAttribute("os", os);
+			model.addAttribute("nome", configurarNome);
+			model.addAttribute("escola", configurarEscola);
+
+			nomeDaPagina = "WebGnius/tesouraria/documentos";
+
+			this.pagina = nomeDaPagina;
+			// }
+
+		} else {
+
+			estado = 0;
+			nomeDaPagina = "redirect:login";
+			this.pagina = nomeDaPagina;
+		}
+
+	
+	
+	
+		
+		return this.pagina;
+	}
+	
+	
+	
+	
+	@GetMapping({"/Tesouraria-Pagar-Estagio","/webgenius/Tesouraria-Pagar-Estagio"})
+	public String tesouraria_Pagar_Estagio(Model model,HttpServletRequest request,HttpServletResponse response) {
+		
+		
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		String nomeDaPagina;
+		
+		
+		
+
+		
+
+		
+
+		
+
+		
+		this.repetir="Tesouraria-Pagar-Estagio";
+
+		if (entrarNoSistema.podeAbrirAPagina(senha)) {
+
+			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+
+			Pesquisar_SQL p = new Pesquisar_SQL();
+			Salvar_SQL s = new Salvar_SQL();
+
+			String mes = s.mesActual(BD);
+
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+					"", id);
+
+
+			ArrayList<Integer> propinas = p.pesquisarTudoEmInt(BD, "Func_Diario", "Prop");
+			ArrayList<Integer> matri = p.pesquisarTudoEmInt(BD, "Func_Diario", "MatEConf");
+			ArrayList<Integer> servicos = p.pesquisarTudoEmInt(BD, "Func_Diario", "servicos");
+			
+			Operacoes op = new Operacoes();
+			
+			
+			int p2 = op.operacoesAdicionais(propinas);
+			int mc = op.operacoesAdicionais(matri);
+			int os = op.operacoesAdicionais(servicos);
+			
+			
+			
+			if (renda == 0) {
+				model.addAttribute("renda", "Irregular");
+			} else {
+				model.addAttribute("renda", "Regular");
+			}
+
+			ArrayList<Integer> estagio = p.pesquisarTudoEmInt(BD, "Escola_Financa", "Estagio");
+			int estagio2 = 0;
+			if (estagio.size() > 0) {
+
+				estagio2 = estagio.get(0);
+			}
+
+			model.addAttribute("estagio", estagio2 + ",00 Kz");
+
+			model.addAttribute("p", p2);
+			model.addAttribute("mc", mc);
+			model.addAttribute("os", os);
+			model.addAttribute("nome", configurarNome);
+			model.addAttribute("escola", configurarEscola);
+
+			nomeDaPagina = "WebGnius/tesouraria/estagio";
+
+			this.pagina = nomeDaPagina;
+			// }
+
+		} else {
+
+			estado = 0;
+			nomeDaPagina = "redirect:login";
+			this.pagina = nomeDaPagina;
+		}
+
+	
+	
+		
+		return this.pagina;
+	}
+	
+	
+	
+	
+	@GetMapping({"/Tesouraria-Pagar-Material","/webgenius/Tesouraria-Pagar-Material"})
+	public String Tesouraria_Pagar_Material(Model model,HttpServletResponse reponse,HttpServletRequest request) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		
+		String nomeDaPagina;
+		
+		
+		
+
+		
+		this.repetir="Tesouraria-Pagar-Material";
+
+		if (entrarNoSistema.podeAbrirAPagina(senha)) {
+
+			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+
+			Pesquisar_SQL p = new Pesquisar_SQL();
+			Salvar_SQL s = new Salvar_SQL();
+
+			String mes = s.mesActual(BD);
+
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+					"", id);
+
+
+			ArrayList<Integer> propinas = p.pesquisarTudoEmInt(BD, "Func_Diario", "Prop");
+			ArrayList<Integer> matri = p.pesquisarTudoEmInt(BD, "Func_Diario", "MatEConf");
+			ArrayList<Integer> servicos = p.pesquisarTudoEmInt(BD, "Func_Diario", "servicos");
+			
+			Operacoes op = new Operacoes();
+			
+			
+			int p2 = op.operacoesAdicionais(propinas);
+			int mc = op.operacoesAdicionais(matri);
+			int os = op.operacoesAdicionais(servicos);
+			
+			
+			if (renda == 0) {
+				model.addAttribute("renda", "Irregular");
+			} else {
+				model.addAttribute("renda", "Regular");
+			}
+
+			ArrayList<String> docs = p.pesquisarTudoEmString(BD, "Escola_Financa", "Mat");
+			ArrayList<Integer> preco = p.pesquisarTudoEmInt(BD, "Escola_Financa", "precoMat");
+
+			ArrayList<String> tCursos = new ArrayList<>();
+			String conteudo = "";
+			int preco2 = 0;
+			for (int i = 0; i < docs.size(); i++) {
+
+				if ((docs.size() > 0) && (i < docs.size())) {
+					conteudo = docs.get(i);
+				}
+
+				if ((preco.size() > 0) && (i < preco.size())) {
+					preco2 = preco.get(i);
+				}
+
+				tCursos.add(conteudo + " " + preco2 + ",00Kz");
+			}
+
+			model.addAttribute("materias", tCursos);
+
+			model.addAttribute("p", p2);
+			model.addAttribute("mc", mc);
+			model.addAttribute("os", os);
+			model.addAttribute("nome", configurarNome);
+			model.addAttribute("escola", configurarEscola);
+
+			nomeDaPagina = "WebGnius/tesouraria/material";
+
+			this.pagina = nomeDaPagina;
+			// }
+
+		} else {
+
+			estado = 0;
+			nomeDaPagina = "redirect:login";
+			this.pagina = nomeDaPagina;
+		}
+
+	
+	
+		
+		return this.pagina;
+	}
+	
+	
+	
+	@GetMapping({"/Tesouraria-Minha-Seguranca","/webgenius/Tesouraria-Minha-Seguranca"})
+	public String Tesouraria_Minha_Seguranca(Model model,HttpServletRequest request,HttpServletResponse response) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		String nomeDaPagina;
+		
+		
+		
+
+
+this.repetir="Tesouraria-Minha-Seguranca";
+
+if (entrarNoSistema.podeAbrirAPagina(senha)) {
+
+	// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+
+	Pesquisar_SQL p = new Pesquisar_SQL();
+	Salvar_SQL s = new Salvar_SQL();
+
+	String mes = s.mesActual(BD);
+
+	int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+			"", id);
+
+
+	ArrayList<Integer> propinas = p.pesquisarTudoEmInt(BD, "Func_Diario", "Prop");
+	ArrayList<Integer> matri = p.pesquisarTudoEmInt(BD, "Func_Diario", "MatEConf");
+	ArrayList<Integer> servicos = p.pesquisarTudoEmInt(BD, "Func_Diario", "servicos");
+	
+	Operacoes op = new Operacoes();
+	
+	
+	int p2 = op.operacoesAdicionais(propinas);
+	int mc = op.operacoesAdicionais(matri);
+	int os = op.operacoesAdicionais(servicos);
+	
+	
+	
+	if (renda == 0) {
+		model.addAttribute("renda", "Irregular");
+	} else {
+		model.addAttribute("renda", "Regular");
 	}
 
+	model.addAttribute("p", p2);
+	model.addAttribute("mc", mc);
+	model.addAttribute("os", os);
+	model.addAttribute("nome", configurarNome);
+	model.addAttribute("escola", configurarEscola);
+
+	nomeDaPagina = "WebGnius/tesouraria/definicao";
+
+	this.pagina = nomeDaPagina;
+	// }
+
+} else {
+
+	estado = 0;
+	nomeDaPagina = "redirect:login";
+	this.pagina = nomeDaPagina;
+}
+
+
+		
+		return this.pagina;
+	}
+	
+	
+	
+	@GetMapping({"/Tesouraria-Pagar-Falta","/webgenius/Tesouraria-Pagar-Falta"})
+	public String Tesouraria_Pagar_Falta(Model model,HttpServletRequest request,HttpServletResponse response) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		String nomeDaPagina;
+		
+		
+		
+
+
+		
+		this.repetir="Tesouraria-Pagar-Falta";
+
+		if (entrarNoSistema.podeAbrirAPagina(senha)) {
+
+			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+
+			Pesquisar_SQL p = new Pesquisar_SQL();
+			Salvar_SQL s = new Salvar_SQL();
+
+			String mes = s.mesActual(BD);
+
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+					"", id);
+
+
+			ArrayList<Integer> propinas = p.pesquisarTudoEmInt(BD, "Func_Diario", "Prop");
+			ArrayList<Integer> matri = p.pesquisarTudoEmInt(BD, "Func_Diario", "MatEConf");
+			ArrayList<Integer> servicos = p.pesquisarTudoEmInt(BD, "Func_Diario", "servicos");
+			
+			Operacoes op = new Operacoes();
+			
+			
+			int p2 = op.operacoesAdicionais(propinas);
+			int mc = op.operacoesAdicionais(matri);
+			int os = op.operacoesAdicionais(servicos);
+			
+			
+			if (renda == 0) {
+				model.addAttribute("renda", "Irregular");
+			} else {
+				model.addAttribute("renda", "Regular");
+			}
+
+			ArrayList<String> docs = p.pesquisarTudoEmString(BD, "Escola_Financa", "Faltas");
+			ArrayList<Integer> preco = p.pesquisarTudoEmInt(BD, "Escola_Financa", "precoFalta");
+
+			ArrayList<String> tCursos = new ArrayList<>();
+			String conteudo = "";
+			int preco2 = 0;
+			for (int i = 0; i < docs.size(); i++) {
+
+				if ((docs.size() > 0) && (i < docs.size())) {
+					conteudo = docs.get(i);
+				}
+
+				if ((preco.size() > 0) && (i < preco.size())) {
+					preco2 = preco.get(i);
+				}
+
+				tCursos.add(conteudo + " " + preco2 + ",00Kz");
+			}
+
+			model.addAttribute("faltas", tCursos);
+
+			model.addAttribute("p", p2);
+			model.addAttribute("mc", mc);
+			model.addAttribute("os", os);
+			model.addAttribute("nome", configurarNome);
+			model.addAttribute("escola", configurarEscola);
+
+			nomeDaPagina = "WebGnius/tesouraria/faltas";
+
+			this.pagina = nomeDaPagina;
+			// }
+
+		} else {
+
+			estado = 0;
+			nomeDaPagina = "redirect:login";
+			this.pagina = nomeDaPagina;
+		}
+
+	
+		
+		return this.pagina;
+	}
+	
+	
+	
+	@GetMapping({"/Tesouraria-Pagar-Confirmacao","/Tesouraria-Pagar-Confirmacao"})
+	public String Tesouraria_Pagar_Confirmacao(Model model,HttpServletRequest request,HttpServletResponse response) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		
+		
+		
+		String nomeDaPagina;
+		
+		
+		
+
+		
+		this.repetir="Tesouraria-Pagar-Confirmacao";
+
+		if (entrarNoSistema.podeAbrirAPagina(senha)) {
+
+			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+
+			Pesquisar_SQL p = new Pesquisar_SQL();
+			Salvar_SQL s = new Salvar_SQL();
+
+			String mes = s.mesActual(BD);
+
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+					"", id);
+
+
+			ArrayList<Integer> propinas = p.pesquisarTudoEmInt(BD, "Func_Diario", "Prop");
+			ArrayList<Integer> matri = p.pesquisarTudoEmInt(BD, "Func_Diario", "MatEConf");
+			ArrayList<Integer> servicos = p.pesquisarTudoEmInt(BD, "Func_Diario", "servicos");
+			
+			Operacoes op = new Operacoes();
+			
+			
+			int p2 = op.operacoesAdicionais(propinas);
+			int mc = op.operacoesAdicionais(matri);
+			int os = op.operacoesAdicionais(servicos);
+			
+			
+			if (renda == 0) {
+				model.addAttribute("renda", "Irregular");
+			} else {
+				model.addAttribute("renda", "Regular");
+			}
+
+			ArrayList<String> docs = p.pesquisarTudoEmString(BD, "Escola_Financa", "confirmacao");
+			ArrayList<Integer> preco = p.pesquisarTudoEmInt(BD, "Escola_Financa", "precoConfir");
+
+			ArrayList<String> tCursos = new ArrayList<>();
+			String conteudo = "";
+			int preco2 = 0;
+			for (int i = 0; i < docs.size(); i++) {
+
+				if ((docs.size() > 0) && (i < docs.size())) {
+					conteudo = docs.get(i);
+				}
+
+				if ((preco.size() > 0) && (i < preco.size())) {
+					preco2 = preco.get(i);
+				}
+
+				tCursos.add(conteudo + " " + preco2 + ",00Kz");
+			}
+
+			model.addAttribute("confirmacoes", tCursos);
+
+			model.addAttribute("p", p2);
+			model.addAttribute("mc", mc);
+			model.addAttribute("os", os);
+			model.addAttribute("nome", configurarNome);
+			model.addAttribute("escola", configurarEscola);
+
+			nomeDaPagina = "WebGnius/tesouraria/confirmacao";
+
+			this.pagina = nomeDaPagina;
+			// }
+
+		} else {
+
+			estado = 0;
+			nomeDaPagina = "redirect:login";
+			this.pagina = nomeDaPagina;
+		}
+
+	
+	
+		
+		return this.pagina;
+	}
+	
+	
+	
+	
+	@GetMapping({"/Propina","/webgenius/Propina"})
+	public String Propina(Model model,HttpServletRequest request,HttpServletResponse response) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		
+		String nomeDaPagina;
+		
+		
+		
+		this.repetir="Propina";
+
+		if (entrarNoSistema.podeAbrirAPagina(senha)) {
+
+			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+
+			Pesquisar_SQL p = new Pesquisar_SQL();
+			Salvar_SQL s = new Salvar_SQL();
+
+			String mes = s.mesActual(BD);
+
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+					"", id);
+			
+			
+			ArrayList<Integer> propinas = p.pesquisarTudoEmInt(BD, "Func_Diario", "Prop");
+			ArrayList<Integer> matri = p.pesquisarTudoEmInt(BD, "Func_Diario", "MatEConf");
+			ArrayList<Integer> servicos = p.pesquisarTudoEmInt(BD, "Func_Diario", "servicos");
+			
+			Operacoes op = new Operacoes();
+			
+			
+			int p2 = op.operacoesAdicionais(propinas);
+			int mc = op.operacoesAdicionais(matri);
+			int os = op.operacoesAdicionais(servicos);
+			
+			
+			if (renda == 0) {
+				model.addAttribute("renda", "Irregular");
+			} else {
+				model.addAttribute("renda", "Regular");
+			}
+
+			String turma = this.alunoFinanca.getTurmaDoAluno();
+			int id = this.alunoFinanca.getId();
+
+			ArrayList<String> mesePagos = s.tesouraria_AlunosMezesPagos(BD, turma, id);
+			ArrayList<String> meseNPagos = s.tesouraria_AlunosMezes_Não_Pagos(BD, turma, id);
+			ArrayList<String> precos = s.tesouraria_MsesQueVaiPagar(BD, this.cursoAluno,this.nivel);
+			ArrayList<Pagamento> meses = new ArrayList<>();
+
+			for (String c : mesePagos) {
+
+				System.out.println("Mes  Pago: " + c);
+			}
+
+			for (String c : meseNPagos) {
+
+				System.out.println("Mes Não Pago: " + c);
+			}
+
+			for (int i = 0; i < mesePagos.size(); i++) {
+
+				Pagamento mes1 = new Pagamento();
+
+				mes1.setPagos(mesePagos.get(i));
+				mes1.setnPagos(meseNPagos.get(i));
+
+				meses.add(mes1);
+			}
+
+			System.out.println("meses: " + meses.size());
+
+			for (Pagamento c : meses) {
+
+				System.out.println("Meses  Pago: " + c.getPagos());
+				System.out.println("Meses Não Pago: " + c.getnPagos());
+			}
+
+			String aluno = this.alunoFinanca.getNome();
+
+			String mes2 = s.mesActual(BD);
+			Date dataActual = new Date();
+			SimpleDateFormat sdf2 = new SimpleDateFormat("dd/MM/yyyy");
+			String[] data = sdf2.format(dataActual).split("/");
+
+			int diaActual = Integer.parseInt(data[0]);
+			int tempoSemMulta = p.pesquisarUmConteudo_Numa_Linha_Int(BD, "Escola_Financa", "TempoPropina", "id", "",
+					1);
+			int multa = p.pesquisarTudoEmInt(BD, "adminfinanca", "multa").get(0);
+			ArrayList<String> multas = new ArrayList<>();
+			if ((diaActual > tempoSemMulta) && (multa > 0)) {
+				multas = s.tesouraria_Multas(BD, this.cursoAluno,this.nivel);
+			}
+
+			System.out.println("Aluno: " + aluno);
+
+			model.addAttribute("aluno", aluno);
+			model.addAttribute("precos", precos);
+			model.addAttribute("meses", meses);
+			model.addAttribute("mesActual", mes2);
+			model.addAttribute("diaActual", tempoSemMulta);
+			model.addAttribute("multas", multas);
+			model.addAttribute("turma", turma);
+
+			model.addAttribute("p", p2);
+			model.addAttribute("mc", mc);
+			model.addAttribute("os", os);
+			model.addAttribute("nome", configurarNome);
+			model.addAttribute("escola", configurarEscola);
+
+			nomeDaPagina = "WebGnius/tesouraria/historicoDoAluno";
+
+			this.pagina = nomeDaPagina;
+			// }
+
+		} else {
+
+			estado = 0;
+			nomeDaPagina = "redirect:login";
+			this.pagina = nomeDaPagina;
+		}
+
+	
+	
+		
+		return this.pagina;
+	}
+	
+	
+	
+	
+	@GetMapping({"/Tesouraria","/webgenius/Tesouraria"})
+	public String secretaria(Model model,HttpServletResponse response) {
+		
+		
+		
+		
+		String BD=null;
+		String bi=null;
+		int id=0;
+		String senha=null;
+		String quem_E_O_func=null;
+		String configurarNome=null;
+		String configurarEscola=null;
+		
+		
+		SessaoActual sa = new SessaoActual();
+		HttpServletRequest request = sa.retornarRequisicao();
+		
+		
+		synchronized(this) {
+		
+		
+Cookie[] cookies = request.getCookies();
+
+        
+		
+		try {
+		
+		
+        for (Cookie aCookie : cookies) {
+            String name = aCookie.getName();
+
+            if (name.equals("BD")) {
+            	BD = aCookie.getValue();
+            	BD = URLDecoder.decode(BD, "UTF-8");
+            	System.out.println("BD: "+BD);
+            }
+
+            if (name.equals("bi")) {
+            	bi = aCookie.getValue();
+            	bi = URLDecoder.decode(bi, "UTF-8");
+            	System.out.println("bi: "+bi);
+            }
+
+            
+            //if (name.equals("turma")) {
+            	//this.turmaAluno = aCookie.getValue();
+           // }
+
+            if (name.equals("id")) {
+               String id2 = aCookie.getValue();
+               id = Integer.parseInt(id2);
+               
+               System.out.println("id: "+id);
+               
+            }
+            
+            if (name.equals("integrante")) {
+            	quem_E_O_func = aCookie.getValue();
+            	System.out.println("quem_E_O_func: "+quem_E_O_func);
+            }
+            
+            if (name.equals("senha")) {
+            	senha = aCookie.getValue();
+            	senha = URLDecoder.decode(senha, "UTF-8");
+            	System.out.println("senha: "+senha);
+            }
+            
+            if (name.equals("nome")) {
+            	configurarNome = aCookie.getValue();
+            	configurarNome = URLDecoder.decode(configurarNome, "UTF-8");
+            	System.out.println("configurarNome: "+configurarNome);
+            	
+            }
+            if (name.equals("escola")) {
+            	configurarEscola = aCookie.getValue();
+            	configurarEscola = URLDecoder.decode(configurarEscola, "UTF-8");
+            	System.out.println("configurarEscola: "+configurarEscola);
+            	
+            }
+
+        }
+		}catch(Exception e){
+			
+			
+			e.printStackTrace();
+		}
+		String nomeDaPagina;
+		
+		
+		
+
+
+		
+		
+		this.repetir="Tesouraria";
+
+		System.out.println("Senha: " + senha);
+		if (entrarNoSistema.podeAbrirAPagina(senha)) {
+
+			// if(acesso.bloqueandoRequisicoes(TechShine_Controller.request, request)) {
+
+			Pesquisar_SQL p = new Pesquisar_SQL();
+			Salvar_SQL s = new Salvar_SQL();
+
+			String mes = s.mesActual(BD);
+
+			int renda = p.pesquisarUmConteudo_Numa_Linha_Int(BD, quem_E_O_func + "_Financa", mes, "id",
+					"", id);
+
+
+			ArrayList<Integer> propinas = p.pesquisarTudoEmInt(BD, "Func_Diario", "Prop");
+			ArrayList<Integer> matri = p.pesquisarTudoEmInt(BD, "Func_Diario", "MatEConf");
+			ArrayList<Integer> servicos = p.pesquisarTudoEmInt(BD, "Func_Diario", "servicos");
+			
+			Operacoes op = new Operacoes();
+			
+			
+			int p2 = op.operacoesAdicionais(propinas);
+			int mc = op.operacoesAdicionais(matri);
+			int os = op.operacoesAdicionais(servicos);
+			
+			
+			if (renda == 0) {
+				model.addAttribute("renda", "Irregular");
+			} else {
+				model.addAttribute("renda", "Regular");
+			}
+
+			model.addAttribute("p", p2);
+			model.addAttribute("mc", mc);
+			model.addAttribute("os", os);
+			model.addAttribute("nome", configurarNome);
+			model.addAttribute("escola", configurarEscola);
+
+			nomeDaPagina = "WebGnius/tesouraria/inicio";
+			this.pagina = nomeDaPagina;
+			// }
+		} else {
+
+			estado = 0;
+			nomeDaPagina = "redirect:login";
+			this.pagina = nomeDaPagina;
+		}
+
+		}
+	
+	
+		
+		return this.pagina;
+	}
+	
+	
+	
+	
+	@GetMapping( {"/WebGenius-Formulario"})
+	public String form1() {
+		
+		
+
+		
+			this.pagina = "TechShine/Aluno/index";
+			return this.pagina;
+		
+	}
+	
+	@PostMapping( {"/WebGenius-Formulario"})
+	public String form2(Aluno aluno) {
+		
+		synchronized(this) {
+
+			Pesquisar_SQL p = new Pesquisar_SQL();
+	        Usuario usuario = p.retornaUsuario2(BD,aluno.getIdAluno());
+			
+			
+			boolean existeuUsuario = usuario.isExisteUsuario();
+			
+			if(existeuUsuario){
+				
+				quem_E_O_func = usuario.getTurma();
+				id= usuario.getId();
+				this.turmaAluno = quem_E_O_func;
+				
+				this.pagina = "redirect:Aluno-Notas";
+				
+				
+			}else {
+				
+				this.pagina = "redirect:WebGenius-Formulario";
+			}
+			
+				
+				return this.pagina;
+		
+		}
+	}
+		
+		
+		
+		@GetMapping( {"/WebGenius-Formulario-2"})
+		public String form3() {
+			
+			
+
+			
+				this.pagina = "TechShine/Aluno/index2";
+				return this.pagina;
+			
+		}
+		
+		@PostMapping( {"/WebGenius-Formulario-2"})
+		public String form4(Aluno aluno) {
+			
+			synchronized(this) {
+
+				Pesquisar_SQL p = new Pesquisar_SQL();
+		        Usuario usuario = p.retornaUsuario2(BD,aluno.getIdAluno());
+				
+				
+				boolean existeuUsuario = usuario.isExisteUsuario();
+				
+				if(existeuUsuario){
+					
+					quem_E_O_func = usuario.getTurma();
+					id= usuario.getId();
+					
+					this.pagina = "redirect:Aluno-Financa";
+					
+					
+				}else {
+					
+					this.pagina = "redirect:WebGenius-Formulario-2";
+				}
+				
+					
+					return this.pagina;
+			
+			}
+	}
+		
+		@GetMapping( {"/WebGenius-Formulario-3"})
+		public String form5() {
+			
+			
+
+			
+				this.pagina = "TechShine/Aluno/index3";
+				return this.pagina;
+			
+		}
+		
+		@PostMapping( {"/WebGenius-Formulario-3"})
+		public String form6(Aluno aluno) {
+			
+			synchronized(this) {
+
+				Pesquisar_SQL p = new Pesquisar_SQL();
+		        Usuario usuario = p.retornaUsuario2(BD,aluno.getIdAluno());
+				
+				
+				boolean existeuUsuario = usuario.isExisteUsuario();
+				
+				if(existeuUsuario){
+					
+					quem_E_O_func = usuario.getTurma();
+					id= usuario.getId();
+					
+					this.pagina = "redirect:Aluno-Materias";
+					
+					
+				}else {
+					
+					this.pagina = "redirect:WebGenius-Formulario-3";
+				}
+				
+					
+					return this.pagina;
+			
+			}
+	}
+
+		
+	
+	
+	
+	
 	// fIM DOS METODOS ACIMA
 	// ===============================
 

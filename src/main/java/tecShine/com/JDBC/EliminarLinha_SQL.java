@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import tecShine.com.model.Conexao;
+
 public class EliminarLinha_SQL {
 
 	
@@ -31,7 +33,10 @@ public class EliminarLinha_SQL {
 		
 
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			con = ConnectionFactory.getConnection(BD);
 
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
@@ -89,7 +94,12 @@ public class EliminarLinha_SQL {
 		
 
 		try{
-			con = ConnectionFactory.getConnection();
+			
+			Conexao conexao = new Conexao();
+			conexao.setBD(BD);
+			
+			
+			con = ConnectionFactory.getConnection(BD);
 
 			stm = con.prepareStatement(sql);
 			stm.executeUpdate(usarBD);
